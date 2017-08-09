@@ -1,0 +1,16 @@
+{
+  "name": "hostjams/Cpanel",
+  "type": "library",
+  "description": "An API that provides easy interaction with the CPANEL API",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Kemoy Campbell"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "hostjams\\Cpanel\\": "src/"
+    }
+  }
+}
