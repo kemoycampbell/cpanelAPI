@@ -1,6 +1,6 @@
-#CPANEl API
+# CPANEl API
 
-###overview
+### overview
 
 Before I get into the detail of how the API works and all that stuff. Let us review what is cpanel. 
 
@@ -8,7 +8,7 @@ cPanel is an online (Linux-based) web hosting control panel that provides a grap
 
 In addition to the GUI, cPanel also has command line and API-based access that allows third party software vendors, web hosting organizations, and developers to automate standard system administration processes. - wikipedia 
 
-###Who use Cpanel? 
+### Who use Cpanel? 
 - GoDaddy
 - Namecheap
 - BlueHost
@@ -17,7 +17,7 @@ In addition to the GUI, cPanel also has command line and API-based access that a
 - InMotionHosting
 - Simply put almost all major web hosting companies are using it.... even developers and web administrators
 
-###For the life of me, why another Cpanel API?!
+### For the life of me, why another Cpanel API?!
 
 I definitely get it. I am not the one to just reinvent the wheel, unless it is for learning purpose. But that is not the
 the case here. I am aware that there are already APIs that are written in PHP to interact with the CPANEL such as
@@ -36,7 +36,7 @@ and among other. I was forced to come up with my own after there were not:
 - Active maintaining 
 - PHP 7 based
 
-###Design design principle
+### Design design principle
 To simplify the API calls, methods are called via the PHP magic method which then convert
 the name into function name for the cpanel api and passed the request to the url.
 
@@ -50,7 +50,7 @@ with that being said, the call using this api goes like this $api->function(para
 the magic method then takes the function as name and the parameters as arguments then
 converted to the equivalent cpanel api query statement.
 
-###supported versions
+### supported versions
  - UAPI
  - API2
  - You can override to use API 1 if you desired but I dont see why you should
@@ -73,7 +73,7 @@ converted to the equivalent cpanel api query statement.
     }
 
 in nutshell, it is all for convent and faster development time.
-###Usage using the API natively(without the lib)
+### Usage using the API natively(without the lib)
 ```php
 
     require_once __DIR__ . '/vendor/autoload.php';
@@ -92,7 +92,7 @@ in nutshell, it is all for convent and faster development time.
     print_r($api->list_ftp());
 ```
 
-###Usage using a chosen library(FTP for demo)
+### Usage using a chosen library(FTP for demo)
 ```php
     require_once __DIR__ . '/vendor/autoload.php';
         
@@ -119,17 +119,17 @@ in nutshell, it is all for convent and faster development time.
     } 
 ```
 
-###Documentation
+### Documentation
 I have not get around to finish the document for the whole thing as yet. However,
 I tried my best to make the code self documented. However, here are the documents for the cpanel UAPI and API2
 
 - UAPI - https://documentation.cpanel.net/display/SDK/Guide+to+UAPI
 - API2 - https://documentation.cpanel.net/display/SDK/Guide+to+cPanel+API+2
-###Contributions
+### Contributions
 Contributions are welcome. If you have feedback or experience issues, feel free to log a issue.
 what is next? check out the changelog.... still want more info, feel free to message me.
 
-###License
+### License
 Use as you see fit
 
 
