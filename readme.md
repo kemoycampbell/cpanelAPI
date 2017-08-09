@@ -55,7 +55,7 @@ converted to the equivalent cpanel api query statement.
  - API2
  - You can override to use API 1 if you desired but I dont see why you should
  
- ###Why libraries?
+ ### Why libraries?
  Libraries are actually Domain specific classes for example Email, FTP,Backup, etc
  with their functions, as specified and labelled by the cpanel document, implemented.
  Those are designed to make the flow of the our applications easier since
