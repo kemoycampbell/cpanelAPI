@@ -64,13 +64,9 @@ converted to the equivalent cpanel api query statement.
  true on successful added new user and the error otherwise hence one could build their application as follow:
  
     if(add_ftp)
-    {
         //yah we passed
-    }
     else
-    {
         //man, i thought you were going to pass......whyyyyyyyyyyyy
-    }
 
 in nutshell, it is all for convent and faster development time.
 ### Usage using the API natively(without the lib)
@@ -106,17 +102,10 @@ in nutshell, it is all for convent and faster development time.
     
     $result = $ftp->list_ftp();
     
-    //did it failed?
     if(!$result)
-    {
         print_r($ftp->get_query_error());
-    }
-    
-    //passed, show all ftp detail
     else
-    {
         print_r($result);
-    } 
 ```
 
 ### Documentation
