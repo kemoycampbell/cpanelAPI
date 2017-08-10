@@ -1,6 +1,6 @@
-##hostjams/Cpanel API changelog
+## hostjams/Cpanel API changelog
 
-###Future / In Progress Features
+### Future / In Progress Features
 - Formated the data returned from the curl 
  - create independent classes of all modules/functions from https://documentation.cpanel.net/display/SDK/Guide+to+UAPI and https://documentation.cpanel.net/display/SDK/Guide+to+cPanel+API+2
  - use UAPI for all modules/functions in the independent classes unless specified otherwise by the developer
@@ -19,8 +19,8 @@
  
  - keep all classes in the lib folder that developer can use them independently if need.... minimum dependency should be Config.php, API.php and the class itself
 
-####current version: 1.0.0
-#####Add:
+#### current version: 1.0.0
+##### Add:
 
 =======
 
@@ -35,4 +35,9 @@
 **lib (libraries):**
 
 FTP can now added and delete user
+
+##### changes:
+ - rename httpsorhttp to protocol, thanks to https://www.reddit.com/user/dejan9393
+
+
         
