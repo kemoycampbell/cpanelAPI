@@ -19,7 +19,7 @@ class API
     private $config = null;
     private $module = null;
     private $securedPort = array(2083,2096,2087);
-    private $httpOrhttps = 'https://';
+    private $protocol = 'https://';
     private $timeout = 5;
     private $api_version = 3;
     private $auth_type = 'pass';
@@ -40,7 +40,7 @@ class API
         //the user decided to use an unsecured port
         if(!in_array($this->config->getPort(),$this->securedPort))
         {
-            $this->httpOrhttps = 'http://';
+            $this->protocol = 'http://';
         }
 
         //verify the access point
@@ -170,7 +170,7 @@ class API
 
         $this->moduleValidator();
 
-        $url = $this->httpOrhttps.$this->config->getServer().':'.$this->config->getPort().'/json-api/cpanel';
+        $url = $this->protocol.$this->config->getServer().':'.$this->config->getPort().'/json-api/cpanel';
 
         $param = array('cpanel_jsonapi_user'=>$this->config->getUsername(),
             'cpanel_jsonapi_apiversion'=>$this->api_version,
