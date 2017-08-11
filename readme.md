@@ -53,7 +53,6 @@ converted to the equivalent cpanel api query statement.
 ### supported versions
  - UAPI
  - API2
- - You can override to use API 1 if you desired but I dont see why you should
  
  ### Why libraries?
  Libraries are actually Domain specific classes for example Email, FTP,Backup, etc
@@ -84,15 +83,16 @@ in nutshell, it is all for convent and faster development time.
     //define the module
     $api->setModule('Ftp');
     
-    //listing the ftp accounts
+    //printing ftp list
     print_r($api->list_ftp());
 ```
 
 ### Usage using a chosen library(FTP for demo)
 ```php
     require_once __DIR__ . '/vendor/autoload.php';
-        
-    $server = '';
+    
+    Coming soon. Undergoing articheture changes
+    /*$server = '';
     $username = '';
     $password = '';
     
@@ -105,7 +105,7 @@ in nutshell, it is all for convent and faster development time.
     if(!$result)
         print_r($ftp->get_query_error());
     else
-        print_r($result);
+        print_r($result);*/
 ```
 
 ### Documentation
