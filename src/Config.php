@@ -11,7 +11,7 @@ namespace hostjams\Cpanel\Config;
 
 use hostjams\Cpanel\Exception\PasswordCannotBeEmpty;
 use hostjams\Cpanel\Exception\ServerNameCannotBeEmpty;
-use hostjams\Cpanel\Exception\UnSupportedPort;
+use hostjams\Cpanel\Exception\Unsupport_ports;
 use hostjams\Cpanel\Exception\UserNameCannotBeEmpty;
 
 class Config
@@ -20,7 +20,7 @@ class Config
     private $username = null;
     private $password = null;
     private $port = 2083;
-    private $supportedPort = array(2082,2083,2095,2096,2086,2087);
+    private $support_ports = array(2082,2083,2095,2096,2086,2087);
 
     public function __construct(string $server,string $username,string $password,int $port=2083)
     {
@@ -53,8 +53,8 @@ class Config
 
     public function getPort():int
     {
-        if(empty($this->port) || !is_int($this->port) || !in_array($this->port,$this->supportedPort))
-            throw new UnSupportedPort("You supplied an invalid port. see https://documentation.cpanel.net/display/SDK/Guide+to+cPanel+API+2
+        if(empty($this->port) || !is_int($this->port) || !in_array($this->port,$this->support_ports))
+            throw new Unsupport_ports("You supplied an invalid port. see https://documentation.cpanel.net/display/SDK/Guide+to+cPanel+API+2
             for all supported port");
         return $this->port;
     }

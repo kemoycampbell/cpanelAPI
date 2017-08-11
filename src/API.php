@@ -11,6 +11,7 @@ namespace hostjams\Cpanel;
 use hostjams\Cpanel\Config\Config;
 use hostjams\Cpanel\Exception\BadCurlResponse;
 use hostjams\Cpanel\Exception\InvalidAccessPoint;
+use hostjams\Cpanel\Exception\InvalidOutputType;
 use hostjams\Cpanel\Exception\ModuleMissing;
 
 class API
@@ -22,12 +23,17 @@ class API
     private $timeout = 5;
     private $apiVersion = 3;
     private $authType = 'pass';
-    const AUTH_PASS = 'pass';
-    const AUTH_HASH = 'hash';
     private $lastRequest = null;
     private $queryError = null;
     private $sslVerifyPeer = false;
     private $sslVerifyHost = false;
+    private $outputType = null;
+
+    const AUTH_PASS = 'pass';
+    const AUTH_HASH = 'hash';
+    const OUTPUT_STDCLASS = 'stdclass';
+    const OUTPUT_JSON = 'json';
+
 
 
     /**
@@ -44,7 +50,9 @@ class API
         }
 
         $this->checkAccessPoint();
+        $this->outputType = static::OUTPUT_JSON;
     }
+
 
     /**
      * This method switch the api version to 3 which is equivalent to UAPI
@@ -60,6 +68,17 @@ class API
     public function useAPI2()
     {
         $this->apiVersion = 2;
+    }
+
+    public function setOutputType(string $type)
+    {
+        $type = strtolower($type);
+        if ($type!==static::OUTPUT_JSON && $type!==static::OUTPUT_STDCLASS) {
+            throw new InvalidOutputType("You supplied an invalid output type in setOutputType, valid types are 
+            json and stdclass");
+        }
+
+        $this->outputType = $type;
     }
 
     /**
@@ -136,7 +155,8 @@ class API
 
         $arguments = array_merge($arguments, $param);
         $this->lastRequest = json_decode($this->request($url, $arguments));
-        return $this->lastRequest;
+
+        return $this->outPutResult($this->lastRequest);
     }
 
     public function queryHasError()
@@ -165,6 +185,20 @@ class API
             return false;
         }
         return $this->queryError;
+    }
+
+    public function setModule(string $module)
+    {
+        $this->module = $module;
+    }
+
+
+    private function outPutResult(\stdClass $result)
+    {
+        if ($this->outputType === static::OUTPUT_STDCLASS) {
+            return $this->lastRequest;
+        }
+        return $result;
     }
 
 
