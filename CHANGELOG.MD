@@ -1,6 +1,7 @@
 ## hostjams/Cpanel API changelog
 
 ### Future / In Progress Features
+- Exception error handlings based on the data returned from the cpanel using the metadata or error field in the json
 - Formated the data returned from the curl 
  - create independent classes of all modules/functions from https://documentation.cpanel.net/display/SDK/Guide+to+UAPI and https://documentation.cpanel.net/display/SDK/Guide+to+cPanel+API+2
  - use UAPI for all modules/functions in the independent classes unless specified otherwise by the developer
@@ -23,7 +24,7 @@
 ##### Add:
 
 =======
-
+- add the option for user to use API 1 though not recommended.
 **Exceptions**:
 
 -BadCurlResponse - throw when the curl response return false after a query to a url
@@ -38,6 +39,9 @@ FTP can now added and delete user
 
 ##### changes:
  - rename httpsorhttp to protocol, thanks to https://www.reddit.com/user/dejan9393
-
+ - adherence to PSR-2 coding standards
+ - rename validateAccessPoint function to testAccessPoint
+ - remove the API 1 support, CPanel.net dont even recommend using it so I dont see why support it.
+ - setOutputType is now added so developer can specified the output type as either json or stdclass object
 
         
