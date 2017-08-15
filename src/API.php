@@ -9,7 +9,9 @@
 namespace hostjams\Cpanel;
 
 use hostjams\Cpanel\Config\Config;
+use hostjams\Cpanel\Exception\BadCredential;
 use hostjams\Cpanel\Exception\BadCurlResponse;
+use hostjams\Cpanel\Exception\BadModuleCall;
 use hostjams\Cpanel\Exception\InvalidAccessPoint;
 use hostjams\Cpanel\Exception\InvalidOutputType;
 use hostjams\Cpanel\Exception\ModuleMissing;
@@ -94,7 +96,11 @@ class API
     }
 
     /**
-     * @throws InvalidAccessPoint
+     * The checkAccessPoint use the testAccessPoint function which uses
+     * fsockopen to check if we can successful connect to the hostname and port
+     * that is supplied as the cpanel endpoint.
+     *
+     * @throws InvalidAccessPoint - throws if we cannot connect
      */
     private function checkAccessPoint()
     {
@@ -107,9 +113,16 @@ class API
         }
     }
 
+    /**
+     * The moduleValidaator function is used to check whether the
+     * module has been set. If no module is set, then ModuleMissing
+     * exception is thrown
+     *
+     * @throws ModuleMissing - throw the ModuleMissing exception if the module is not set
+     */
     private function moduleValidator()
     {
-        if ($this->module === null) {
+        if ($this->module === null || empty(trim($this->module))) {
             throw new ModuleMissing("The cpanel module was not supplied!");
         }
     }
@@ -156,6 +169,9 @@ class API
         $arguments = array_merge($arguments, $param);
         $this->lastRequest = json_decode($this->request($url, $arguments));
 
+        $this->checkCredential();
+        $this->badModuleChecker();
+
         return $this->outPutResult($this->lastRequest);
     }
 
@@ -179,20 +195,63 @@ class API
         return false;
     }
 
+    /**
+     * This function returns the latest error otherwise false if there has been no
+     * error
+     * @return bool| string - returns the error in string format otherwise false
+     */
     public function getQueryError()
     {
-        if ($this->queryError == null) {
+        if ($this->queryError === null) {
             return false;
         }
         return $this->queryError;
     }
 
+    /**
+     * This function is used to set the module.
+     * @param string $module - the module name in string
+     */
     public function setModule(string $module)
     {
         $this->module = $module;
     }
 
+    /**
+     * The checkCredential function use the queryHasError
+     * function to check the result returned from the lastRequest query
+     * to see if the cpanel rejected the credential that was supplied by the
+     * user. If so, BadCredential exception is thrown
+     */
+    private function checkCredential()
+    {
+        if ($this->queryHasError()) {
+            $error = strtolower($this->getQueryError());
+            if (strpos($error, 'access denied')!==false) {
+                throw new BadCredential($error);
+            }
+        }
+    }
 
+    public function badModuleChecker()
+    {
+        if ($this->queryHasError()) {
+            $error = strtolower($this->getQueryError());
+            if (strpos($error, 'failed to load module')!==false) {
+                throw new BadModuleCall($error);
+            }
+        }
+    }
+
+
+
+
+    /**
+     * The outPutResult function is used in the __call function
+     * to return the cpanel result either in stdclass object or json
+     * @param \stdClass $result
+     * @return null|\stdClass
+     */
     private function outPutResult(\stdClass $result)
     {
         if ($this->outputType === static::OUTPUT_STDCLASS) {

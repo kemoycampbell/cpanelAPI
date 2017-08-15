@@ -2,13 +2,14 @@
 /**
  * Created by PhpStorm.
  * User: root
- * Date: 8/10/17
- * Time: 7:03 PM
+ * Date: 8/15/17
+ * Time: 1:27 PM
  */
 
 namespace hostjams\Cpanel\Exception;
 
 
-class BadCredential extends \RuntimeException
+class BadModuleCall extends \RuntimeException
 {
+
 }
