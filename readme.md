@@ -115,11 +115,11 @@ I tried my best to make the code self documented. However, here are the document
 - UAPI - https://documentation.cpanel.net/display/SDK/Guide+to+UAPI
 - API2 - https://documentation.cpanel.net/display/SDK/Guide+to+cPanel+API+2
 ### Contributions
-Contributions are welcome. If you have feedback or experience issues, feel free to log a issue.
+Contributions are welcome. If you have feedback or experience issues, feel free to log a issue or submit a pull request.
 what is next? check out the changelog.... still want more info, feel free to message me.
 
 ### License
-Use as you see fit
+MIT
 
 
 
