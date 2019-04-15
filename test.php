@@ -9,12 +9,16 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-$server = '';
-$username = '';
-$password = '';
+use hostjams\Cpanel\Config\Config;
+use hostjams\Cpanel\API\API;
 
-$config = new \hostjams\Cpanel\Config\Config($server,$username,$password);
-$api = new \hostjams\Cpanel\API($config);
+$server = ''; //the ip address of your cpanel server
+$username = '';//cpanel username
+$password = ''; //cpanel password
+$port = 2083;
+
+$config = new Config($server,$username,$password, $port);
+$api = new API($config);
 
 
 //valid module

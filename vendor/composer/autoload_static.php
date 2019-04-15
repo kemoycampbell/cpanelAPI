@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit563235715e335fe4a0007a516b18752b
+class ComposerStaticInit59054005c98e8ae0fbce0130003ee75b
 {
     public static $prefixLengthsPsr4 = array (
         'h' => 
@@ -20,25 +20,11 @@ class ComposerStaticInit563235715e335fe4a0007a516b18752b
         ),
     );
 
-    public static $classMap = array (
-        'hostjams\\Cpanel\\API' => __DIR__ . '/../..' . '/src/API.php',
-        'hostjams\\Cpanel\\Config\\Config' => __DIR__ . '/../..' . '/src/Config.php',
-        'hostjams\\Cpanel\\Exception\\BadCurlResponse' => __DIR__ . '/../..' . '/src/Exception/BadCurlResponse.php',
-        'hostjams\\Cpanel\\Exception\\InvalidAccessPoint' => __DIR__ . '/../..' . '/src/Exception/InvalidAccessPoint.php',
-        'hostjams\\Cpanel\\Exception\\ModuleMissing' => __DIR__ . '/../..' . '/src/Exception/ModuleMissing.php',
-        'hostjams\\Cpanel\\Exception\\PasswordCannotBeEmpty' => __DIR__ . '/../..' . '/src/Exception/PasswordCannotBeEmpty.php',
-        'hostjams\\Cpanel\\Exception\\PortCannotBeEmpty' => __DIR__ . '/../..' . '/src/Exception/PortCannotBeEmpty.php',
-        'hostjams\\Cpanel\\Exception\\ServerNameCannotBeEmpty' => __DIR__ . '/../..' . '/src/Exception/ServerNameCannotBeEmpty.php',
-        'hostjams\\Cpanel\\Exception\\UnSupportedPort' => __DIR__ . '/../..' . '/src/Exception/UnSupportedPort.php',
-        'hostjams\\Cpanel\\Exception\\UserNameCannotBeEmpty' => __DIR__ . '/../..' . '/src/Exception/UserNameCannotBeEmpty.php',
-    );
-
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit563235715e335fe4a0007a516b18752b::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit563235715e335fe4a0007a516b18752b::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit563235715e335fe4a0007a516b18752b::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit59054005c98e8ae0fbce0130003ee75b::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit59054005c98e8ae0fbce0130003ee75b::$prefixDirsPsr4;
 
         }, null, ClassLoader::class);
     }

@@ -6,7 +6,7 @@
  * Time: 10:32 PM
  */
 
-namespace hostjams\Cpanel;
+namespace hostjams\Cpanel\API;
 
 use hostjams\Cpanel\Config\Config;
 use hostjams\Cpanel\Exception\BadCredential;
