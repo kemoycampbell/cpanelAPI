@@ -1,74 +1,83 @@
-# CPANEl API
+# cPanel API
 
-### overview
+### Overview
 
-Before I get into the detail of how the API works and all that stuff. Let us review what is cpanel. 
+Before I get into detail about how the API works and all, let us review what is cPanel. 
 
-cPanel is an online (Linux-based) web hosting control panel that provides a graphical interface and automation tools designed to simplify the process of hosting a web site. cPanel utilizes a 3 tier structure that provides capabilities for administrators, resellers, and end-user website owners to control the various aspects of website and server administration through a standard web browser.
+cPanel™ is an online (Linux-based) web hosting control panel that provides a graphical interface and automation tools designed to simplify the process of hosting a web site. cPanel utilizes a 3 tier structure that provides capabilities for administrators, resellers, and end-user website owners to control the various aspects of website and server administration through a standard web browser.
 
-In addition to the GUI, cPanel also has command line and API-based access that allows third party software vendors, web hosting organizations, and developers to automate standard system administration processes. - wikipedia 
+In addition to the GUI, cPanel also has command line and API-based access that allows third party software vendors, web hosting organizations, and developers to automate standard system administration processes. (Wikipedia)
 
-### Who use Cpanel? 
+### Who uses Cpanel? 
 - GoDaddy
 - Namecheap
 - BlueHost
 - HostGator
 - DreamHost
 - InMotionHosting
-- Simply put almost all major web hosting companies are using it.... even developers and web administrators
+- Simply put, almost all major web hosting companies are using it, even independent developers and web administrators
 
-### For the life of me, why another Cpanel API?!
+### For the life of me, why another cPanel API?!
 
-I definitely get it. I am not the one to just reinvent the wheel, unless it is for learning purpose. But that is not the
-the case here. I am aware that there are already APIs that are written in PHP to interact with the CPANEL such as
+I definitely get it. I am not one to re-invent the wheel, unless it is for learning purposes, but that is not the
+the case here. I am aware there are already APIs written in PHP to interact with the cPanel API such as:
 
-- Xmlapi-php https://github.com/CpanelInc/xmlapi-php
-- cpanel-UAPI-php-class https://github.com/N1ghteyes/cpanel-UAPI-php-class, this was in what I have been using for a year before
-designing to rewrite it.
+- xmlapi-php (https://github.com/CpanelInc/xmlapi-php)
+- cpanel-UAPI-php-class (https://github.com/N1ghteyes/cpanel-UAPI-php-class) this was what I used for a year before
+deciding to rewrite it)
 
-and among other. I was forced to come up with my own after there were not:
+...among others. I was forced to come up with my own after there was no:
 
-- elegant errors handling aka Custom Exceptions, for example, Bad curl response, module missing, bad credentials, invalid access point especially with invalid hostname and port number and what not
+- elegant error handling a.k.a. Custom Exceptions, for bad CURL responses, modules missing, bad credentials, invalid access point / invalid hostname and port number, etc
 - simplicity 
-- Agile, easy to change, maintain
-- Faster, let us face it, even using the cpanel in the web interface is long. The curl request in cpanel-UAPI-php-class, in my opinion, is long and seemly to have unnecessary code.
-- an API that can easily aids the development of cpanel libraries or even framework that can still be used independently by developers instead of being forced to use them all as frameworks normally does. See the lib folder for example.
-- Active maintaining 
-- PHP 7 based
+- agile approach, ease to change, maintain
+- speed - let's face it, using the cpanel in the web interface is slow. The curl request in cpanel-UAPI-php-class, in my opinion, is not optimised, and seems to have unnecessary code.
+- API that can easily aid the development of cPanel libraries, or a framework that can be separate concerns independently instead of being forced to include them all, as frameworks usually do. See the lib folder for example.
+- active maintenance
+- PHP 7 base
 
-### Design design principle
-To simplify the API calls, methods are called via the PHP magic method which then convert
-the name into function name for the cpanel api and passed the request to the url.
+### Design principle
 
-According to Cpanel document, to make an api call it goes like this:
+To simplify the API calls, methods are called via the PHP magic method, which then convert
+the name into a function name for the cPanel API, and pass the request on to the cPanel server.
 
-- module name - this is the module that one want to use such as Ftp,Email, etc
-- function - the function of the module
+According to cPanel API documentation, to make an API call you need the following:
 
-with that being said, the call using this api goes like this $api->function(parameters if any)
+- Module name (one you want to use, such as Ftp, Email, etc)
+- Function (a specific function or sub-routine of the module)
 
-the magic method then takes the function as name and the parameters as arguments then
-converted to the equivalent cpanel api query statement.
+...and with that said, a call using this API goes like this:
 
-### supported versions
+$api->function(parameters if any)
+
+The magic method then takes the function name and the parameters as arguments and
+converts them to an equivalent cPanel API query.
+
+### Supported versions
+
  - UAPI
  - API2
  
  ### Why libraries?
- Libraries are actually Domain specific classes for example Email, FTP,Backup, etc
- with their functions, as specified and labelled by the cpanel document, implemented.
- Those are designed to make the flow of the our applications easier since
- they will have return types and among the like that can be easily managed or compare
- for example, if we have a function called add_ftp in the FTP class (library) it will returns
- true on successful added new user and the error otherwise hence one could build their application as follow:
+ 
+ Libraries are Domain specific classes, for example Email, FTP, Backup, etc
+ with functions specified and detailed under the cPanel documentation online.
+ These are designed to make the flow of your applications easier since
+ they all have return types which can be easily managed or compared,
+ for example, if we have a function called 'add_ftp' in the FTP class (library), it will return
+ true on successfully adding a new user, or an error otherwise.
+ 
+ Hence one could build their application as follows:
  
     if(add_ftp)
         //yah we passed
     else
         //man, i thought you were going to pass......whyyyyyyyyyyyy
 
-in nutshell, it is all for convent and faster development time.
-### Usage using the API natively(without the lib)
+...in a nutshell, it is all for convenience and faster development time.
+
+### Usage - using the API natively (without the lib)
+
 ```php
 
     require_once __DIR__ . '/vendor/autoload.php';
@@ -87,11 +96,12 @@ in nutshell, it is all for convent and faster development time.
     print_r($api->list_ftp());
 ```
 
-### Usage using a chosen library(FTP for demo)
+### Usage - using a chosen library (FTP for demo)
+
 ```php
     require_once __DIR__ . '/vendor/autoload.php';
     
-    Coming soon. Undergoing articheture changes
+    Coming soon. Undergoing architectural changes
     /*$server = '';
     $username = '';
     $password = '';
@@ -109,16 +119,23 @@ in nutshell, it is all for convent and faster development time.
 ```
 
 ### Documentation
-I have not get around to finish the document for the whole thing as yet. However,
-I tried my best to make the code self documented. However, here are the documents for the cpanel UAPI and API2
+
+I have not get around to finish the documentation for this whole thing as of yet, however,
+I tried my best to make the code self-documented.
+
+Here are links to official documentation for the cPanel UAPI and API2:
 
 - UAPI - https://documentation.cpanel.net/display/SDK/Guide+to+UAPI
 - API2 - https://documentation.cpanel.net/display/SDK/Guide+to+cPanel+API+2
+
 ### Contributions
-Contributions are welcome. If you have feedback or experience issues, feel free to log a issue or submit a pull request.
-what is next? check out the changelog.... still want more info, feel free to message me.
+
+Contributions are welcome. If you have feedback or experience any issues, feel free to log an issue or submit a pull request.
+
+What is next? Check out the changelog. Still want more info? Feel free to message me.
 
 ### License
+
 MIT
 
 
