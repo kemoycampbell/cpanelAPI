@@ -8,6 +8,7 @@ use HostJams\CpanelAPI\Cpanel\Exception\ConnectionException;
 use HostJams\CpanelAPI\Cpanel\Exception\CredentialException;
 use HostJams\CpanelAPI\Cpanel\Exception\FunctionException;
 use HostJams\CpanelAPI\Cpanel\Exception\ModuleException;
+use Symfony\Component\HttpClient\CurlHttpClient;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
@@ -38,10 +39,12 @@ class Cpanel implements CpanelInterface
     private $sslVerifyPeer = false;
     private $sslVerifyHost = false;
     private $outputType;
+    private $log;
 
     private const API2_VERSION = 2;
     private const OUTPUT_STDCLASS = "stdclass";
     private const OUTPUT_JSON = "json";
+    private const OUTPUT_ARRAY = "array";
 
     /**
      * This function initalize the constructor with the default variable values.
@@ -59,7 +62,7 @@ class Cpanel implements CpanelInterface
         $this->error = "";
         $this->function = "";
 
-        $this->outputType = self::OUTPUT_STDCLASS;
+        $this->setOutputTypeToStdClass();
 
         //by default we are set to use UAPI
         $this->useUAPI();
@@ -109,24 +112,19 @@ class Cpanel implements CpanelInterface
     public function request(string $url, array $parameters = array()): ResponseInterface
     {
 
+        //setting up the options parameters
         $options = array();
         $options["headers"] = array("Authorization: Basic"=>$this->auth);
         $options["timeout"] = $this->timeout;
-        $options['max_redirects'] = 5;
-        $options["body"] = $parameters;//http_build_query($parameters);
-
+        $options["body"] = $parameters;
         $options['verify_peer'] = $this->sslVerifyPeer;
         $options['verify_host']  = $this->sslVerifyHost;
 
+        //set the method type
+        $method = !empty($parameters) ? "POST" : "GET";
 
-
-        $method = "GET";
-        if (!empty($parameters)) {
-            $method = "POST";
-        }
-
-        $client = HttpClient::create();
-
+        //make the client request and return it
+        $client = new CurlHttpClient();
         return $client->request($method, $url, $options);
     }
 
@@ -134,7 +132,7 @@ class Cpanel implements CpanelInterface
      * This function takes the function name of the Cpanel api eg list_ftp and set the full endpoint
      * url depending on whether it is UAPI or API2
      * @param string $function the target Cpanel API function eg list_ftp
-     * @return string the full uri
+     * @return string the full uri for the api endpoint
      */
     private function setApiEndpoint(string $function)
     {
@@ -162,19 +160,42 @@ class Cpanel implements CpanelInterface
     /**
      * @inheritDoc
      */
-    public function __call($name, $arguments = array())
+    public function trace(string $type = "pretty"):void
     {
+        if ($type = "pretty") {
+            echo "<pre>".print_r($this->log, true)."</pre>";
+        } else {
+            print_r($this->log);
+        }
+    }
 
-        $uri = $this->setApiEndpoint($name);
+    /**
+     * This function stores the log result of the api call as well as the
+     * last request
+     * @param ResponseInterface $response
+     * @throws \Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface
+     * @throws \Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface
+     * @throws \Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface
+     * @throws \Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface
+     */
+    private function log(ResponseInterface $response):void
+    {
+        $content = $response->getContent();
+        $this->log = array(
+            "response"=>$response->getInfo(),
+            "cpanel"=>json_decode($content, true) //convert to array
+        );
 
-        //make our request and check for bad credential
-        $response = $this->request($uri, $arguments);
-        $this->checkCredential($response->getStatusCode());
+        $this->lastRequest = json_decode($content);
+    }
 
 
-        //convert the response we received into stdclass
-        $this->lastRequest = json_decode($response->getContent());
-
+    /**
+     * This function check if the API error is a module or Function Exception
+     */
+    private function checkForModuleOrFunctionException():void
+    {
+        // check for module and function error
         if ($this->hasError()) {
             //check for bad module
             $this->moduleExceptionChecker();
@@ -182,41 +203,32 @@ class Cpanel implements CpanelInterface
             //check for bad function
             $this->functionExceptionChecker();
         }
-
-        //return the output in the desired format
-        return $this->getOutputResult();
     }
 
     /**
      * @inheritDoc
      */
-    public function setOutPutType(string $type): void
+    public function __call(string $function, array $arguments = array())
     {
-        $this->outputType = strtolower($type);
-    }
+        $uri = $this->setApiEndpoint($function);
 
-    /**
-     * @inheritDoc
-     */
-    public function getJsonResult(): string
-    {
-        return json_decode($this->lastRequest);
-    }
+        //temp fix as the arguments is supplying more than 1D array and we only need 1D
+        if (!empty($arguments)) {
+            $arguments = $arguments[0];
+        }
 
-    /**
-     * @inheritDoc
-     */
-    public function getStdClassResult(): \stdClass
-    {
-        return $this->getLastRequest();
-    }
+        //make our request and check for bad credential
+        $response = $this->request($uri, $arguments);
+        $this->checkCredential($response->getStatusCode());
 
-    /**
-     * @inheritDoc
-     */
-    public function getArrayResult(): array
-    {
-        return json_decode(json_encode($this->lastRequest), true);
+        //store the log of our request and response
+        $this->log($response);
+
+        //check for Exception from the api response
+        $this->checkForModuleOrFunctionException();
+
+        //return the output in the user's desired format
+        return $this->getOutputResult($response->getContent());
     }
 
     /**
@@ -343,17 +355,42 @@ class Cpanel implements CpanelInterface
 
     /**
      * This function will returns the output in the desired format
+     * @param string $response the json response that we get from the api
      * @return array|string|\stdClass
      */
-    private function getOutputResult()
+    private function getOutputResult(string $response)
     {
         if ($this->outputType===self::OUTPUT_JSON) {
-            return $this->getJsonResult();
+            return $response;
         } elseif ($this->outputType===self::OUTPUT_STDCLASS) {
-            return $this->lastRequest;
+            return json_decode($response);
         }
+        //return as array
+        return json_decode($response, true);
+    }
 
-        return $this->getArrayResult();
+    /**
+     * @inheritDoc
+     */
+    public function setOutputTypeToArray(): void
+    {
+        $this->outputType = self::OUTPUT_ARRAY;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setOutputTypeToJson(): void
+    {
+        $this->outputType = self::OUTPUT_JSON;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setOutputTypeToStdClass(): void
+    {
+        $this->outputType = self::OUTPUT_STDCLASS;
     }
 }
 

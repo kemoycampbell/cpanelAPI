@@ -46,35 +46,28 @@ interface CpanelInterface
     public function request(string $url, array $parameters = array()):ResponseInterface;
 
     /**
-     * This method will use the request function and make the appropriate API call
-     * depending on the module, UAPI or API and parameters that was supplied
-     * @param $name the function name
-     * @param array $arguments the parameters for the function
-     * @return mixed
+     * This method is the magic method that will make call to the Cpanel api depending on the module ie
+     * UAPI or API and parameters supplied
+     * @param string $function the target cpanel functions eg add_ftp
+     * @param array $arguments the arguments for the function
+     * @return mixed the output result from the call
      */
-    public function __call($name, $arguments = array());
+    public function __call(string $function, array $arguments = array());
 
     /**
-     * Set the desired output type
-     * @param string $type the desired output type. Current supported are stdclass, json and array
+     * This function set the output to array
      */
-    public function setOutPutType(string $type):void;
+    public function setOutputTypeToArray():void;
 
     /**
-     * @return string result of the API call in JSON format
+     * This function set the output to JSON
      */
-    public function getJsonResult():string;
+    public function setOutputTypeToJson():void;
 
     /**
-     * @return \stdClass result of the API call in stdclass format
+     * This function set the output to stdClass
      */
-    public function getStdClassResult():\stdClass;
-
-    /**
-     * This function returns the result of the api call in array format
-     * @return array the api call results
-     */
-    public function getArrayResult():array;
+    public function setOutputTypeToStdClass():void;
 
     /**
      * @return \stdClass return the result of the Last result in stdclass
@@ -149,6 +142,13 @@ interface CpanelInterface
      * @param bool $verify a boolean expression
      */
     public function setSslVerifyHost(bool $verify):void;
+
+    /**
+    /**
+     * This function is a debugger that prints the log of the request and the cpanel response
+     * @param string $type "pretty" to print in <pre>data </pre> format. Default is just regular array output
+     */
+    public function trace(string $type):void;
 
 
 }
