@@ -132,6 +132,7 @@ Cpanel Official Document
 
 ### Roadmap
 - Submit package to composer
+- Extends the Authentication options to include tokens, 2FA, hash and among other
 - Going forward I will be working on implementing the components starting with FTP module and work onward to the other components.
 I believe it is much easier to start with components that are most common use such as FTP, Mysql, Domain, Email and the
 likes.
