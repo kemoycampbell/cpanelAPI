@@ -1,6 +1,6 @@
 <?php
 
-namespace KemoyCampbell\CpanelAPI\API;
+namespace KemoyCampbell\CpanelAPI\API\CpanelAPI\Exception;
 
 interface CpanelResponseParsingExceptionInterface extends \Throwable
 {

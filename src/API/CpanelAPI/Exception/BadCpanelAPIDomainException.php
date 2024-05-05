@@ -2,7 +2,7 @@
 
 namespace KemoyCampbell\CpanelAPI\API\CpanelAPI\Exception;
 
-class BadCpanelAPIDomainException
+class BadCpanelAPIDomainException extends \Exception
 {
 
 }

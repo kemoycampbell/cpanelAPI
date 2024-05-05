@@ -2,7 +2,9 @@
 
 namespace KemoyCampbell\CpanelAPI\API\CpanelAPI\Exception;
 
-class CpanelResponseParsingException
+use KemoyCampbell\CpanelAPI\API\CpanelAPI\Exception\CpanelResponseParsingExceptionInterface;
+
+class CpanelResponseParsingException extends \Exception implements CpanelResponseParsingExceptionInterface
 {
 
 }
