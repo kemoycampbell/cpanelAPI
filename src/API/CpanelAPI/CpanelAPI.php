@@ -2,6 +2,7 @@
 
 namespace KemoyCampbell\CpanelAPI\API\CpanelAPI;
 
+use KemoyCampbell\CpanelAPI\API\Config\AuthType;
 use KemoyCampbell\CpanelAPI\API\Config\ConfigInterface;
 use KemoyCampbell\CpanelAPI\API\CpanelAPI\Exception\BadCpanelAPIDomainException;
 use KemoyCampbell\CpanelAPI\API\CpanelAPI\Exception\CpanelFunctionException;
@@ -21,9 +22,9 @@ class CpanelAPI implements CPanelAPIInterface
     private const BAD_MODULE = "Failed to load module";
     private const BAD_FUNCTION = "The system could not find the function";
 
-    public function __construct(ConfigInterface $cpanelConfig, ?HttpClientInterface $client = null)
+    public function __construct(ConfigInterface $cpanelConfig)
     {
-        $this->client = $client ?? $this->configureClient($cpanelConfig);
+        $this->client = $this->configureClient($cpanelConfig);
         $this->lastResponse = null;
     }
 
@@ -33,8 +34,14 @@ class CpanelAPI implements CPanelAPIInterface
         $endpoint = "{$module}/{$function}?{$queryString}";
 
         $response = $this->client->request('GET', $endpoint);
+
+        echo $response->getContent();
+
+
         $this->handleTransportException($response);
         $this->handleBadCredential($response);
+
+
 
         $this->lastResponse = new CpanelResponse($response);
 
@@ -57,7 +64,9 @@ class CpanelAPI implements CPanelAPIInterface
             $response->getStatusCode();
         } catch (\Throwable $e) {
             if (strpos($e->getMessage(), self::CANNOT_RESOLVE) !== false) {
-                throw new BadCpanelAPIDomainException('Could not resolve the cPanel API domain. Possible bad domain name');
+                throw new BadCpanelAPIDomainException(
+                    'Could not resolve the cPanel API domain. Possible bad domain name'
+                );
             } else {
                 throw $e;
             }
@@ -103,18 +112,43 @@ class CpanelAPI implements CPanelAPIInterface
         return count($this->getErrors()) > 0;
     }
 
+    /**
+     * @throws \Exception
+     */
     public function configureClient(ConfigInterface $cpanelConfig): HttpClientInterface
     {
         $baseUrl = "https://{$cpanelConfig->getServerDomain()}:{$cpanelConfig->getPort()}/execute/";
-        $authorization = "cpanel {$cpanelConfig->getUsername()}:{$cpanelConfig->getToken()}";
+        $authorization = $this->createAuthorizationHeader($cpanelConfig);
+
+        $headers = array("Authorization" => $authorization);
+        if ($cpanelConfig->useTwoFactorAuthentication()) {
+            $headers["X-CPANEL-OTP"] = $cpanelConfig->getOTPToken($cpanelConfig->getToken());
+        }
+
+        echo $authorization;
 
         $options = [
             'base_uri' => $baseUrl,
-            'headers' => [
-                'Authorization' => $authorization,
-            ]
+            'headers' => $headers
         ];
 
         return HttpClient::create($options);
+    }
+
+    private function createAuthorizationHeader(ConfigInterface $cpanelConfig): string
+    {
+
+        $username = $cpanelConfig->getUsername();
+        $token = $cpanelConfig->getToken(); //token can be a token or password
+
+        if ($cpanelConfig->getAuthType() === AuthType::Password) {
+            return "Basic ".base64_encode("{$username}:{$token}");
+        }
+
+        if ($cpanelConfig->getAuthType() === AuthType::Token) {
+            return "cpanel {$username}:{$token}";
+        }
+
+        throw new \Exception('Unsupported authentication type');
     }
 }

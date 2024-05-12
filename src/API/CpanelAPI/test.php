@@ -16,16 +16,25 @@ $domain = $_ENV['CPANEL_DOMAIN'];
 $username = $_ENV['CPANEL_USERNAME'];
 $token = $_ENV['CPANEL_TOKEN'];
 
-$config = new \KemoyCampbell\CpanelAPI\API\Config\CpanelConfig($domain, $username, $token);
+$secret = $_ENV['TWO_FACTOR_SECRET'];
+
+$config = new \KemoyCampbell\CpanelAPI\API\Config\CpanelConfig($domain, $username, $token, \KemoyCampbell\CpanelAPI\API\Config\AuthType::Password);
+
+$config->setTwoFactorAuthenticationSecret($secret);
 
 $api = new \KemoyCampbell\CpanelAPI\API\CpanelAPI\CpanelAPI($config);
 
 $response = $api->request('ServerInformation', 'get_information');
 
-//echo $response->getResponseAsString();
-
-echo $response->getResponseAsJson();
-
-echo "<br/>";
+echo $response->getResponseAsString();
+//
+////echo $response->getResponseAsJson();
+//
+//echo "<br/>";
 
 //print_r($response->getResponseAsArray());
+
+
+
+
+
