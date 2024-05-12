@@ -39,5 +39,12 @@
     "files": [
       "load_test_credential.php"
     ]
-  }
+  },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "src/API/"
+    }
+  ],
+  "minimum-stability": "dev"
 }

@@ -147,3 +147,14 @@ package.tar
 src/API/CpanelAPI/test.php
 
 .php-cs-fixer.cache
+
+vendor/
+composer.lock
+phpunit.xml
+.php-cs-fixer.cache
+.php-cs-fixer.php
+.phpunit.result.cache
+composer.phar
+package.tar
+/packages.json
+/.phpunit
