@@ -8,6 +8,8 @@ use KemoyCampbell\CpanelAPI\API\Config\Exception\ConfigPortException;
 use KemoyCampbell\CpanelAPI\API\Config\Exception\ConfigServerDomainException;
 use KemoyCampbell\CpanelAPI\API\Config\Exception\ConfigTokenException;
 use KemoyCampbell\CpanelAPI\API\Config\Exception\ConfigUsernameException;
+use KemoyCampbell\CpanelAPI\API\Config\Exception\Unsupported2FAOptionException;
+use KemoyCampbell\CpanelAPI\API\OTP\OTP;
 
 class CpanelConfig implements ConfigInterface
 {
@@ -15,13 +17,22 @@ class CpanelConfig implements ConfigInterface
     private string $username;
     private int $port;
     private string $token;
+    private ?string $twoFactorAuthenticationSecret;
+    private AuthType $authType;
 
-    public function __construct(string $serverDomain, string $username, string $token, int $port = 2083)
-    {
+    public function __construct(
+        string $serverDomain,
+        string $username,
+        string $token,
+        AuthType $authType = AuthType::Token
+    ) {
         $this->serverDomain = $serverDomain;
         $this->username = $username;
-        $this->port = $port;
         $this->token = $token;
+        $this->authType = $authType;
+        $this->port = 2083;
+        $this->twoFactorAuthenticationSecret = null;
+
 
         $this->validateConfiguration();
     }
@@ -113,6 +124,7 @@ class CpanelConfig implements ConfigInterface
         }
     }
 
+
     /**
      * Validates the entire configuration.
      * Calls individual validation methods for each configuration parameter.
@@ -124,5 +136,46 @@ class CpanelConfig implements ConfigInterface
         $this->validateUsername();
         $this->validateToken();
         $this->validatePort();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getAuthType(): AuthType
+    {
+        return $this->authType;
+    }
+
+    public function getOTPToken():string
+    {
+        echo $this->twoFactorAuthenticationSecret;
+         echo "<br/>";
+        $otp = new OTP($this->twoFactorAuthenticationSecret);
+
+        $secretToken = $otp->generateOTP();
+        echo $secretToken;
+        echo "<br/>";
+
+
+        return $secretToken;
+    }
+
+    public function useTwoFactorAuthentication(): bool
+    {
+        return $this->twoFactorAuthenticationSecret !== null;
+    }
+
+    public function setPort(int $port): void
+    {
+        $this->port = $port;
+    }
+
+    public function setTwoFactorAuthenticationSecret(string $secret): void
+    {
+        //2FA is currently only supported with AuthType::Password
+        if ($this->authType !== AuthType::Password) {
+            throw new Unsupported2FAOptionException('2FA is only supported with password auth type');
+        }
+        $this->twoFactorAuthenticationSecret = $secret;
     }
 }

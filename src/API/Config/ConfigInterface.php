@@ -44,10 +44,24 @@ interface ConfigInterface
      */
     public function getToken():string;
 
+    public function setPort(int $port):void;
+
     /**
      * This function returns a list of ports that the cpanel supported
      *
      * @return array a list of ports that are supported
      */
     public function getSupportedCpanelPorts():array;
+
+    /**
+     * Get the authentication type used for connecting to the cPanel API.
+     *
+     * @return AuthType The authentication type enum.
+     */
+    public function getAuthType():AuthType;
+
+    public function getOTPToken():string;
+
+    public function useTwoFactorAuthentication():bool;
+    public function setTwoFactorAuthenticationSecret(string $secret):void;
 }//end interface

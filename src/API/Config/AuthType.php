@@ -4,6 +4,6 @@ namespace KemoyCampbell\CpanelAPI\API\Config;
 
 enum AuthType
 {
-    case Basic;
+    case Password;
     case Token;
 }
