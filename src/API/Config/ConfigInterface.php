@@ -60,7 +60,7 @@ interface ConfigInterface
      */
     public function getAuthType():AuthType;
 
-    public function getOTPToken():string;
+    public function getOTPToken():int;
 
     public function useTwoFactorAuthentication():bool;
     public function setTwoFactorAuthenticationSecret(string $secret):void;

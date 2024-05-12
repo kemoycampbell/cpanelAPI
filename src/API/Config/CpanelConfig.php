@@ -146,7 +146,7 @@ class CpanelConfig implements ConfigInterface
         return $this->authType;
     }
 
-    public function getOTPToken():string
+    public function getOTPToken():int
     {
         $otp = new OTP($this->twoFactorAuthenticationSecret);
         return $otp->generateOTP();
