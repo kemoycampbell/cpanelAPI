@@ -4,14 +4,19 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\PSR2\Tests\Namespaces;
 
 use PHP_CodeSniffer\Tests\Standards\AbstractSniffUnitTest;
 
-class UseDeclarationUnitTest extends AbstractSniffUnitTest
+/**
+ * Unit test class for the UseDeclaration sniff.
+ *
+ * @covers \PHP_CodeSniffer\Standards\PSR2\Sniffs\Namespaces\UseDeclarationSniff
+ */
+final class UseDeclarationUnitTest extends AbstractSniffUnitTest
 {
 
 
@@ -34,7 +39,10 @@ class UseDeclarationUnitTest extends AbstractSniffUnitTest
                 5  => 1,
                 6  => 1,
                 7  => 1,
-                12 => 1,
+                9  => 1,
+                10 => 1,
+                11 => 1,
+                16 => 1,
             ];
         case 'UseDeclarationUnitTest.3.inc':
             return [

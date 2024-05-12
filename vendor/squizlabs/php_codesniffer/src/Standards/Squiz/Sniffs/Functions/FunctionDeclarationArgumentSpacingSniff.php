@@ -4,7 +4,7 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Squiz\Sniffs\Functions;
@@ -41,7 +41,7 @@ class FunctionDeclarationArgumentSpacingSniff implements Sniff
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
@@ -96,7 +96,7 @@ class FunctionDeclarationArgumentSpacingSniff implements Sniff
      * Processes the contents of a single set of brackets.
      *
      * @param \PHP_CodeSniffer\Files\File $phpcsFile   The file being scanned.
-     * @param int                         $openBracket The position of the open bracker
+     * @param int                         $openBracket The position of the open bracket
      *                                                 in the stack.
      *
      * @return void
@@ -120,8 +120,14 @@ class FunctionDeclarationArgumentSpacingSniff implements Sniff
             $next = $phpcsFile->findNext(T_WHITESPACE, ($openBracket + 1), $closeBracket, true);
             if ($next === false) {
                 if (($closeBracket - $openBracket) !== 1) {
+                    if ($tokens[$openBracket]['line'] !== $tokens[$closeBracket]['line']) {
+                        $found = 'newline';
+                    } else {
+                        $found = $tokens[($openBracket + 1)]['length'];
+                    }
+
                     $error = 'Expected 0 spaces between parenthesis of function declaration; %s found';
-                    $data  = [$tokens[($openBracket + 1)]['length']];
+                    $data  = [$found];
                     $fix   = $phpcsFile->addFixableError($error, $openBracket, 'SpacingBetween', $data);
                     if ($fix === true) {
                         $phpcsFile->fixer->replaceToken(($openBracket + 1), '');
@@ -131,7 +137,7 @@ class FunctionDeclarationArgumentSpacingSniff implements Sniff
                 // No params, so we don't check normal spacing rules.
                 return;
             }
-        }
+        }//end if
 
         foreach ($params as $paramNumber => $param) {
             if ($param['pass_by_reference'] === true) {

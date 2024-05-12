@@ -1,15 +1,20 @@
 {
-  "name": "$vendor_name$/$package_name$",
-  "description": "$description$",
-  "minimum-stability": "$stability$",
-  "license": "$license$",
+  "name": "kemoycampbell/cpanel-api-core",
+  "description":  "Streamlined cPanel API Integration:\nThis library simplifies interacting with cPanel APIs.\nIt offers essential tools for authentication, making API requests, and parsing responses.\nIt serves as a foundation for building robust cPanel integrations and applications.",
+  "minimum-stability": "stable",
+  "license": "MIT",
   "authors": [
     {
-      "name": "$author$",
-      "email": "$email$"
+      "name": "Kemoy Campbell",
+      "email": "kemoycampbell45@gmail.com"
     }
   ],
   "require": {
-    $END$
+    "php": ">=8.2",
+    "symfony/http-client": "^7.0",
+    "ext-simplexml": "*"
+  },
+  "autoload": {
+    "psr-4": {"KemoyCampbell\\CpanelAPI\\API\\": ""}
   }
 }

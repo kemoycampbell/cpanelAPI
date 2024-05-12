@@ -4,14 +4,19 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Generic\Tests\ControlStructures;
 
 use PHP_CodeSniffer\Tests\Standards\AbstractSniffUnitTest;
 
-class InlineControlStructureUnitTest extends AbstractSniffUnitTest
+/**
+ * Unit test class for the InlineControlStructure sniff.
+ *
+ * @covers \PHP_CodeSniffer\Standards\Generic\Sniffs\ControlStructures\InlineControlStructureSniff
+ */
+final class InlineControlStructureUnitTest extends AbstractSniffUnitTest
 {
 
 
@@ -25,7 +30,7 @@ class InlineControlStructureUnitTest extends AbstractSniffUnitTest
      *
      * @return array<int, int>
      */
-    public function getErrorList($testFile='InlineControlStructureUnitTest.1.inc')
+    public function getErrorList($testFile='')
     {
         switch ($testFile) {
         case 'InlineControlStructureUnitTest.1.inc':
@@ -37,8 +42,6 @@ class InlineControlStructureUnitTest extends AbstractSniffUnitTest
                 15  => 1,
                 17  => 1,
                 23  => 1,
-                42  => 1,
-                43  => 1,
                 45  => 1,
                 46  => 1,
                 49  => 1,
@@ -68,14 +71,13 @@ class InlineControlStructureUnitTest extends AbstractSniffUnitTest
                 198 => 1,
                 206 => 1,
                 222 => 1,
-                226 => 1,
-                228 => 1,
-                230 => 1,
                 232 => 1,
                 235 => 1,
                 236 => 1,
                 238 => 1,
                 242 => 1,
+                260 => 1,
+                269 => 1,
             ];
 
         case 'InlineControlStructureUnitTest.js':

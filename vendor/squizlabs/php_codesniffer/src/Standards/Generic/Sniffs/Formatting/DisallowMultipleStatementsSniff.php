@@ -4,7 +4,7 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\Formatting;
@@ -19,7 +19,7 @@ class DisallowMultipleStatementsSniff implements Sniff
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
@@ -59,16 +59,18 @@ class DisallowMultipleStatementsSniff implements Sniff
         } while ($tokens[$prev]['code'] === T_PHPCS_IGNORE);
 
         // Ignore multiple statements in a FOR condition.
-        if (isset($tokens[$stackPtr]['nested_parenthesis']) === true) {
-            foreach ($tokens[$stackPtr]['nested_parenthesis'] as $bracket) {
-                if (isset($tokens[$bracket]['parenthesis_owner']) === false) {
-                    // Probably a closure sitting inside a function call.
-                    continue;
-                }
+        foreach ([$stackPtr, $prev] as $checkToken) {
+            if (isset($tokens[$checkToken]['nested_parenthesis']) === true) {
+                foreach ($tokens[$checkToken]['nested_parenthesis'] as $bracket) {
+                    if (isset($tokens[$bracket]['parenthesis_owner']) === false) {
+                        // Probably a closure sitting inside a function call.
+                        continue;
+                    }
 
-                $owner = $tokens[$bracket]['parenthesis_owner'];
-                if ($tokens[$owner]['code'] === T_FOR) {
-                    return;
+                    $owner = $tokens[$bracket]['parenthesis_owner'];
+                    if ($tokens[$owner]['code'] === T_FOR) {
+                        return;
+                    }
                 }
             }
         }

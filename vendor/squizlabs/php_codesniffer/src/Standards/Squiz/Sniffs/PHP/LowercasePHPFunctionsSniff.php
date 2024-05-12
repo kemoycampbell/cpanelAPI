@@ -4,7 +4,7 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Squiz\Sniffs\PHP;
@@ -39,7 +39,7 @@ class LowercasePHPFunctionsSniff implements Sniff
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
@@ -75,6 +75,11 @@ class LowercasePHPFunctionsSniff implements Sniff
         }
 
         // Make sure this is a function call or a use statement.
+        if (empty($tokens[$stackPtr]['nested_attributes']) === false) {
+            // Class instantiation in attribute, not function call.
+            return;
+        }
+
         $next = $phpcsFile->findNext(Tokens::$emptyTokens, ($stackPtr + 1), null, true);
         if ($next === false) {
             // Not a function call.
@@ -84,15 +89,15 @@ class LowercasePHPFunctionsSniff implements Sniff
         $ignore   = Tokens::$emptyTokens;
         $ignore[] = T_BITWISE_AND;
         $prev     = $phpcsFile->findPrevious($ignore, ($stackPtr - 1), null, true);
-        $pprev    = $phpcsFile->findPrevious(Tokens::$emptyTokens, ($prev - 1), null, true);
+        $prevPrev = $phpcsFile->findPrevious(Tokens::$emptyTokens, ($prev - 1), null, true);
 
         if ($tokens[$next]['code'] !== T_OPEN_PARENTHESIS) {
             // Is this a use statement importing a PHP native function ?
             if ($tokens[$next]['code'] !== T_NS_SEPARATOR
                 && $tokens[$prev]['code'] === T_STRING
                 && $tokens[$prev]['content'] === 'function'
-                && $pprev !== false
-                && $tokens[$pprev]['code'] === T_USE
+                && $prevPrev !== false
+                && $tokens[$prevPrev]['code'] === T_USE
             ) {
                 $error = 'Use statements for PHP native functions must be lowercase; expected "%s" but found "%s"';
                 $data  = [
@@ -116,10 +121,10 @@ class LowercasePHPFunctionsSniff implements Sniff
         }
 
         if ($tokens[$prev]['code'] === T_NS_SEPARATOR) {
-            if ($pprev !== false
-                && ($tokens[$pprev]['code'] === T_STRING
-                || $tokens[$pprev]['code'] === T_NAMESPACE
-                || $tokens[$pprev]['code'] === T_NEW)
+            if ($prevPrev !== false
+                && ($tokens[$prevPrev]['code'] === T_STRING
+                || $tokens[$prevPrev]['code'] === T_NAMESPACE
+                || $tokens[$prevPrev]['code'] === T_NEW)
             ) {
                 // Namespaced class/function, not an inbuilt function.
                 // Could potentially give false negatives for non-namespaced files
@@ -133,7 +138,9 @@ class LowercasePHPFunctionsSniff implements Sniff
             return;
         }
 
-        if ($tokens[$prev]['code'] === T_OBJECT_OPERATOR) {
+        if ($tokens[$prev]['code'] === T_OBJECT_OPERATOR
+            || $tokens[$prev]['code'] === T_NULLSAFE_OBJECT_OPERATOR
+        ) {
             // Not an inbuilt function.
             return;
         }

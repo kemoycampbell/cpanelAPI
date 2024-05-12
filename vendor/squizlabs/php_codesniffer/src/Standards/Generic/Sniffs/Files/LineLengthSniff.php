@@ -8,7 +8,7 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\Files;
@@ -50,7 +50,7 @@ class LineLengthSniff implements Sniff
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
@@ -80,7 +80,7 @@ class LineLengthSniff implements Sniff
         $this->checkLineLength($phpcsFile, $tokens, $i);
 
         // Ignore the rest of the file.
-        return ($phpcsFile->numTokens + 1);
+        return $phpcsFile->numTokens;
 
     }//end process()
 
@@ -92,7 +92,7 @@ class LineLengthSniff implements Sniff
      * @param array                       $tokens    The token stack.
      * @param int                         $stackPtr  The first token on the next line.
      *
-     * @return null|false
+     * @return void
      */
     protected function checkLineLength($phpcsFile, $tokens, $stackPtr)
     {
@@ -158,7 +158,7 @@ class LineLengthSniff implements Sniff
             // to ignore the line length in these cases if the URL would be longer than the max
             // line length once you indent it to the correct level.
             if ($lineLength > $this->lineLimit) {
-                $oldLength = $tokens[$stackPtr]['length'];
+                $oldLength = strlen($tokens[$stackPtr]['content']);
                 $newLength = strlen(ltrim($tokens[$stackPtr]['content'], "/#\t "));
                 $indent    = (($tokens[$stackPtr]['column'] - 1) + ($oldLength - $newLength));
 

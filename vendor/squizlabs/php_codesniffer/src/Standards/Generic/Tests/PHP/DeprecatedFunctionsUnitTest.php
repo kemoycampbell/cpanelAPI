@@ -4,14 +4,19 @@
  *
  * @author    Juliette Reinders Folmer <phpcs_nospam@adviesenzo.nl>
  * @copyright 2019 Juliette Reinders Folmer. All rights reserved.
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Generic\Tests\PHP;
 
 use PHP_CodeSniffer\Tests\Standards\AbstractSniffUnitTest;
 
-class DeprecatedFunctionsUnitTest extends AbstractSniffUnitTest
+/**
+ * Unit test class for the DeprecatedFunctions sniff.
+ *
+ * @covers \PHP_CodeSniffer\Standards\Generic\Sniffs\PHP\DeprecatedFunctionsSniff
+ */
+final class DeprecatedFunctionsUnitTest extends AbstractSniffUnitTest
 {
 
 
@@ -27,11 +32,11 @@ class DeprecatedFunctionsUnitTest extends AbstractSniffUnitTest
     {
         $errors = [];
 
-        if (PHP_VERSION_ID >= 70200) {
+        if (PHP_VERSION_ID >= 70200 && PHP_VERSION_ID < 80000) {
             $errors[3] = 1;
         }
 
-        if (PHP_VERSION_ID >= 70300) {
+        if (PHP_VERSION_ID >= 70300 && PHP_VERSION_ID < 80000) {
             $errors[4] = 1;
         }
 

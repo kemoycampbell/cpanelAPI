@@ -1,6 +1,6 @@
 <?php
 
-namespace Config;
+namespace KemoyCampbell\CpanelAPI\API\tests\Config;
 
 use KemoyCampbell\CpanelAPI\API\Config\ConfigInterface;
 use KemoyCampbell\CpanelAPI\API\Config\CpanelConfig;
@@ -22,7 +22,7 @@ class ConfigTest extends TestCase
         $this->username = 'username';
         $this->token = 'token';
 
-        $this->config = new CpanelConfig($this->serverDomain, $this->username, $this->token, $this->port);
+        $this->config = new CpanelConfig($this->serverDomain, $this->username, $this->token);
     }
 
     public function testCpanelUsername()
@@ -68,6 +68,4 @@ class ConfigTest extends TestCase
         $this->expectException(\KemoyCampbell\CpanelAPI\API\Config\Exception\ConfigTokenException::class);
         $this->config = new CpanelConfig($this->serverDomain, $this->username, '', $this->port);
     }
-
-
 }

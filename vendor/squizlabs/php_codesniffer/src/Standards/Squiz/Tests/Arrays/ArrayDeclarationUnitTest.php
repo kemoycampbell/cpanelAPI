@@ -4,14 +4,19 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Squiz\Tests\Arrays;
 
 use PHP_CodeSniffer\Tests\Standards\AbstractSniffUnitTest;
 
-class ArrayDeclarationUnitTest extends AbstractSniffUnitTest
+/**
+ * Unit test class for the ArrayDeclaration sniff.
+ *
+ * @covers \PHP_CodeSniffer\Standards\Squiz\Sniffs\Arrays\ArrayDeclarationSniff
+ */
+final class ArrayDeclarationUnitTest extends AbstractSniffUnitTest
 {
 
 
@@ -79,6 +84,7 @@ class ArrayDeclarationUnitTest extends AbstractSniffUnitTest
                 148 => 1,
                 151 => 1,
                 157 => 1,
+                173 => 1,
                 174 => 3,
                 179 => 1,
                 182 => 1,
@@ -113,6 +119,23 @@ class ArrayDeclarationUnitTest extends AbstractSniffUnitTest
                 370 => 1,
                 383 => 1,
                 394 => 1,
+                400 => 1,
+                406 => 1,
+                441 => 1,
+                444 => 2,
+                445 => 2,
+                447 => 2,
+                448 => 3,
+                467 => 1,
+                471 => 1,
+                472 => 1,
+                510 => 1,
+                516 => 1,
+                523 => 1,
+                530 => 1,
+                537 => 1,
+                540 => 1,
+                547 => 2,
             ];
         case 'ArrayDeclarationUnitTest.2.inc':
             return [
@@ -159,6 +182,7 @@ class ArrayDeclarationUnitTest extends AbstractSniffUnitTest
                 148 => 1,
                 151 => 1,
                 157 => 1,
+                173 => 1,
                 174 => 3,
                 179 => 1,
                 190 => 1,
@@ -188,6 +212,23 @@ class ArrayDeclarationUnitTest extends AbstractSniffUnitTest
                 358 => 1,
                 372 => 1,
                 383 => 1,
+                389 => 1,
+                395 => 1,
+                430 => 1,
+                433 => 2,
+                434 => 2,
+                436 => 2,
+                437 => 3,
+                456 => 1,
+                460 => 1,
+                461 => 1,
+                499 => 1,
+                505 => 1,
+                512 => 1,
+                519 => 1,
+                526 => 1,
+                529 => 1,
+                536 => 2,
             ];
         default:
             return [];

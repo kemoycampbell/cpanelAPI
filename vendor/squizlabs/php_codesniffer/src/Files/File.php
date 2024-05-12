@@ -4,17 +4,18 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Files;
 
-use PHP_CodeSniffer\Ruleset;
 use PHP_CodeSniffer\Config;
-use PHP_CodeSniffer\Fixer;
-use PHP_CodeSniffer\Util;
 use PHP_CodeSniffer\Exceptions\RuntimeException;
 use PHP_CodeSniffer\Exceptions\TokenizerException;
+use PHP_CodeSniffer\Fixer;
+use PHP_CodeSniffer\Ruleset;
+use PHP_CodeSniffer\Util\Common;
+use PHP_CodeSniffer\Util\Tokens;
 
 class File
 {
@@ -209,6 +210,7 @@ class File
      * An array of sniffs being processed and how long they took.
      *
      * @var array
+     * @see getListenerTimes()
      */
     protected $listenerTimes = [];
 
@@ -253,6 +255,7 @@ class File
         $this->configCache['errorSeverity']   = $this->config->errorSeverity;
         $this->configCache['warningSeverity'] = $this->config->warningSeverity;
         $this->configCache['recordErrors']    = $this->config->recordErrors;
+        $this->configCache['trackTime']       = $this->config->trackTime;
         $this->configCache['ignorePatterns']  = $this->ruleset->ignorePatterns;
         $this->configCache['includePatterns'] = $this->ruleset->includePatterns;
 
@@ -274,7 +277,7 @@ class File
         $this->tokens  = [];
 
         try {
-            $this->eolChar = Util\Common::detectLineEndings($content);
+            $this->eolChar = Common::detectLineEndings($content);
         } catch (RuntimeException $e) {
             $this->addWarningOnLine($e->getMessage(), 1, 'Internal.DetectLineEndings');
             return;
@@ -343,6 +346,7 @@ class File
         $listenerIgnoreTo = [];
         $inTests          = defined('PHP_CODESNIFFER_IN_TESTS');
         $checkAnnotations = $this->config->annotations;
+        $annotationErrors = [];
 
         // Foreach of the listeners that have registered to listen for this
         // token, get them to process it.
@@ -356,7 +360,7 @@ class File
                 || $token['code'] === T_DOC_COMMENT_TAG
                 || ($inTests === true && $token['code'] === T_INLINE_HTML))
             ) {
-                $commentText      = ltrim($this->tokens[$stackPtr]['content'], ' /*');
+                $commentText      = ltrim($this->tokens[$stackPtr]['content'], " \t/*#");
                 $commentTextLower = strtolower($commentText);
                 if (strpos($commentText, '@codingStandards') !== false) {
                     if (strpos($commentText, '@codingStandardsIgnoreFile') !== false) {
@@ -379,9 +383,12 @@ class File
                                 if (isset($this->ruleset->sniffCodes[$parts[0]]) === true) {
                                     $listenerCode  = array_shift($parts);
                                     $propertyCode  = array_shift($parts);
-                                    $propertyValue = rtrim(implode(' ', $parts), " */\r\n");
+                                    $settings      = [
+                                        'value' => rtrim(implode(' ', $parts), " */\r\n"),
+                                        'scope' => 'sniff',
+                                    ];
                                     $listenerClass = $this->ruleset->sniffCodes[$listenerCode];
-                                    $this->ruleset->setSniffProperty($listenerClass, $propertyCode, $propertyValue);
+                                    $this->ruleset->setSniffProperty($listenerClass, $propertyCode, $settings);
                                 }
                             }
                         }
@@ -403,9 +410,20 @@ class File
                         $listenerCode = $token['sniffCode'];
                         if (isset($this->ruleset->sniffCodes[$listenerCode]) === true) {
                             $propertyCode  = $token['sniffProperty'];
-                            $propertyValue = $token['sniffPropertyValue'];
+                            $settings      = [
+                                'value' => $token['sniffPropertyValue'],
+                                'scope' => 'sniff',
+                            ];
                             $listenerClass = $this->ruleset->sniffCodes[$listenerCode];
-                            $this->ruleset->setSniffProperty($listenerClass, $propertyCode, $propertyValue);
+                            try {
+                                $this->ruleset->setSniffProperty($listenerClass, $propertyCode, $settings);
+                            } catch (RuntimeException $e) {
+                                // Non-existant property being set via an inline annotation.
+                                // This is typically a PHPCS test case file, but we can't throw an error on the annotation
+                                // line as it would get ignored. We also don't want this error to block
+                                // the scan of the current file, so collect these and throw later.
+                                $annotationErrors[] = 'Line '.$token['line'].': '.str_replace('Ruleset invalid. ', '', $e->getMessage());
+                            }
                         }
                     }
                 }//end if
@@ -413,7 +431,7 @@ class File
 
             if (PHP_CODESNIFFER_VERBOSITY > 2) {
                 $type    = $token['type'];
-                $content = Util\Common::prepareForOutput($token['content']);
+                $content = Common::prepareForOutput($token['content']);
                 echo "\t\tProcess token $stackPtr: $type => $content".PHP_EOL;
             }
 
@@ -442,30 +460,11 @@ class File
                     continue;
                 }
 
-                // If the file path matches one of our ignore patterns, skip it.
-                // While there is support for a type of each pattern
-                // (absolute or relative) we don't actually support it here.
-                foreach ($listenerData['ignore'] as $pattern) {
-                    // We assume a / directory separator, as do the exclude rules
-                    // most developers write, so we need a special case for any system
-                    // that is different.
-                    if (DIRECTORY_SEPARATOR === '\\') {
-                        $pattern = str_replace('/', '\\\\', $pattern);
-                    }
-
-                    $pattern = '`'.$pattern.'`i';
-                    if (preg_match($pattern, $this->path) === 1) {
-                        $this->ignoredListeners[$class] = true;
-                        continue(2);
-                    }
-                }
-
-                // If the file path does not match one of our include patterns, skip it.
-                // While there is support for a type of each pattern
-                // (absolute or relative) we don't actually support it here.
-                if (empty($listenerData['include']) === false) {
-                    $included = false;
-                    foreach ($listenerData['include'] as $pattern) {
+                if (trim($this->path, '\'"') !== 'STDIN') {
+                    // If the file path matches one of our ignore patterns, skip it.
+                    // While there is support for a type of each pattern
+                    // (absolute or relative) we don't actually support it here.
+                    foreach ($listenerData['ignore'] as $pattern) {
                         // We assume a / directory separator, as do the exclude rules
                         // most developers write, so we need a special case for any system
                         // that is different.
@@ -475,21 +474,45 @@ class File
 
                         $pattern = '`'.$pattern.'`i';
                         if (preg_match($pattern, $this->path) === 1) {
-                            $included = true;
-                            break;
+                            $this->ignoredListeners[$class] = true;
+                            continue(2);
                         }
                     }
 
-                    if ($included === false) {
-                        $this->ignoredListeners[$class] = true;
-                        continue;
-                    }
+                    // If the file path does not match one of our include patterns, skip it.
+                    // While there is support for a type of each pattern
+                    // (absolute or relative) we don't actually support it here.
+                    if (empty($listenerData['include']) === false) {
+                        $included = false;
+                        foreach ($listenerData['include'] as $pattern) {
+                            // We assume a / directory separator, as do the exclude rules
+                            // most developers write, so we need a special case for any system
+                            // that is different.
+                            if (DIRECTORY_SEPARATOR === '\\') {
+                                $pattern = str_replace('/', '\\\\', $pattern);
+                            }
+
+                            $pattern = '`'.$pattern.'`i';
+                            if (preg_match($pattern, $this->path) === 1) {
+                                $included = true;
+                                break;
+                            }
+                        }
+
+                        if ($included === false) {
+                            $this->ignoredListeners[$class] = true;
+                            continue;
+                        }
+                    }//end if
                 }//end if
 
                 $this->activeListener = $class;
 
-                if (PHP_CODESNIFFER_VERBOSITY > 2) {
+                if ($this->configCache['trackTime'] === true) {
                     $startTime = microtime(true);
+                }
+
+                if (PHP_CODESNIFFER_VERBOSITY > 2) {
                     echo "\t\t\tProcessing ".$this->activeListener.'... ';
                 }
 
@@ -498,14 +521,16 @@ class File
                     $listenerIgnoreTo[$this->activeListener] = $ignoreTo;
                 }
 
-                if (PHP_CODESNIFFER_VERBOSITY > 2) {
+                if ($this->configCache['trackTime'] === true) {
                     $timeTaken = (microtime(true) - $startTime);
                     if (isset($this->listenerTimes[$this->activeListener]) === false) {
                         $this->listenerTimes[$this->activeListener] = 0;
                     }
 
                     $this->listenerTimes[$this->activeListener] += $timeTaken;
+                }
 
+                if (PHP_CODESNIFFER_VERBOSITY > 2) {
                     $timeTaken = round(($timeTaken), 4);
                     echo "DONE in $timeTaken seconds".PHP_EOL;
                 }
@@ -528,12 +553,18 @@ class File
             }
         }
 
+        if ($annotationErrors !== []) {
+            $error  = 'Encountered invalid inline phpcs:set annotations. Found:'.PHP_EOL;
+            $error .= implode(PHP_EOL, $annotationErrors);
+
+            $this->addWarning($error, null, 'Internal.PropertyDoesNotExist');
+        }
+
         if (PHP_CODESNIFFER_VERBOSITY > 2) {
             echo "\t*** END TOKEN PROCESSING ***".PHP_EOL;
             echo "\t*** START SNIFF PROCESSING REPORT ***".PHP_EOL;
 
-            asort($this->listenerTimes, SORT_NUMERIC);
-            $this->listenerTimes = array_reverse($this->listenerTimes, true);
+            arsort($this->listenerTimes, SORT_NUMERIC);
             foreach ($this->listenerTimes as $listener => $timeTaken) {
                 echo "\t$listener: ".round(($timeTaken), 4).' secs'.PHP_EOL;
             }
@@ -731,7 +762,7 @@ class File
 
 
     /**
-     * Records a warning against a specific token in the file.
+     * Records a warning against a specific line in the file.
      *
      * @param string $warning  The error message.
      * @param int    $line     The line on which the warning occurred.
@@ -842,7 +873,7 @@ class File
         $parts = explode('.', $code);
         if ($parts[0] === 'Internal') {
             // An internal message.
-            $listenerCode = Util\Common::getSniffCode($this->activeListener);
+            $listenerCode = Common::getSniffCode($this->activeListener);
             $sniffCode    = $code;
             $checkCodes   = [$sniffCode];
         } else {
@@ -851,7 +882,7 @@ class File
                 $sniffCode    = $code;
                 $listenerCode = substr($sniffCode, 0, strrpos($sniffCode, '.'));
             } else {
-                $listenerCode = Util\Common::getSniffCode($this->activeListener);
+                $listenerCode = Common::getSniffCode($this->activeListener);
                 $sniffCode    = $listenerCode.'.'.$code;
                 $parts        = explode('.', $sniffCode);
             }
@@ -874,7 +905,7 @@ class File
                 }
             }
 
-            // If it is ignored, make sure it's not whitelisted.
+            // If it is ignored, make sure there is no exception in place.
             if ($ignored === true
                 && isset($this->tokenizer->ignoredLines[$line]['.except']) === true
             ) {
@@ -965,59 +996,63 @@ class File
 
         // Make sure we are not ignoring this file.
         $included = null;
-        foreach ($checkCodes as $checkCode) {
-            $patterns = null;
+        if (trim($this->path, '\'"') === 'STDIN') {
+            $included = true;
+        } else {
+            foreach ($checkCodes as $checkCode) {
+                $patterns = null;
 
-            if (isset($this->configCache['includePatterns'][$checkCode]) === true) {
-                $patterns  = $this->configCache['includePatterns'][$checkCode];
-                $excluding = false;
-            } else if (isset($this->configCache['ignorePatterns'][$checkCode]) === true) {
-                $patterns  = $this->configCache['ignorePatterns'][$checkCode];
-                $excluding = true;
-            }
-
-            if ($patterns === null) {
-                continue;
-            }
-
-            foreach ($patterns as $pattern => $type) {
-                // While there is support for a type of each pattern
-                // (absolute or relative) we don't actually support it here.
-                $replacements = [
-                    '\\,' => ',',
-                    '*'   => '.*',
-                ];
-
-                // We assume a / directory separator, as do the exclude rules
-                // most developers write, so we need a special case for any system
-                // that is different.
-                if (DIRECTORY_SEPARATOR === '\\') {
-                    $replacements['/'] = '\\\\';
+                if (isset($this->configCache['includePatterns'][$checkCode]) === true) {
+                    $patterns  = $this->configCache['includePatterns'][$checkCode];
+                    $excluding = false;
+                } else if (isset($this->configCache['ignorePatterns'][$checkCode]) === true) {
+                    $patterns  = $this->configCache['ignorePatterns'][$checkCode];
+                    $excluding = true;
                 }
 
-                $pattern = '`'.strtr($pattern, $replacements).'`i';
-                $matched = preg_match($pattern, $this->path);
-
-                if ($matched === 0) {
-                    if ($excluding === false && $included === null) {
-                        // This file path is not being included.
-                        $included = false;
-                    }
-
+                if ($patterns === null) {
                     continue;
                 }
 
-                if ($excluding === true) {
-                    // This file path is being excluded.
-                    $this->ignoredCodes[$checkCode] = true;
-                    return false;
-                }
+                foreach ($patterns as $pattern => $type) {
+                    // While there is support for a type of each pattern
+                    // (absolute or relative) we don't actually support it here.
+                    $replacements = [
+                        '\\,' => ',',
+                        '*'   => '.*',
+                    ];
 
-                // This file path is being included.
-                $included = true;
-                break;
+                    // We assume a / directory separator, as do the exclude rules
+                    // most developers write, so we need a special case for any system
+                    // that is different.
+                    if (DIRECTORY_SEPARATOR === '\\') {
+                        $replacements['/'] = '\\\\';
+                    }
+
+                    $pattern = '`'.strtr($pattern, $replacements).'`i';
+                    $matched = preg_match($pattern, $this->path);
+
+                    if ($matched === 0) {
+                        if ($excluding === false && $included === null) {
+                            // This file path is not being included.
+                            $included = false;
+                        }
+
+                        continue;
+                    }
+
+                    if ($excluding === true) {
+                        // This file path is being excluded.
+                        $this->ignoredCodes[$checkCode] = true;
+                        return false;
+                    }
+
+                    // This file path is being included.
+                    $included = true;
+                    break;
+                }//end foreach
             }//end foreach
-        }//end foreach
+        }//end if
 
         if ($included === false) {
             // There were include rules set, but this file
@@ -1205,6 +1240,18 @@ class File
 
 
     /**
+     * Returns the time taken processing this file for each invoked sniff.
+     *
+     * @return array
+     */
+    public function getListenerTimes()
+    {
+        return $this->listenerTimes;
+
+    }//end getListenerTimes()
+
+
+    /**
      * Returns the absolute filename of this file.
      *
      * @return string
@@ -1217,7 +1264,7 @@ class File
 
 
     /**
-     * Returns the declaration names for classes, interfaces, traits, and functions.
+     * Returns the declaration name for classes, interfaces, traits, enums, and functions.
      *
      * @param int $stackPtr The position of the declaration token which
      *                      declared the class, interface, trait, or function.
@@ -1226,7 +1273,7 @@ class File
      *                     or NULL if the function or class is anonymous.
      * @throws \PHP_CodeSniffer\Exceptions\RuntimeException If the specified token is not of type
      *                                                      T_FUNCTION, T_CLASS, T_ANON_CLASS,
-     *                                                      T_CLOSURE, T_TRAIT, or T_INTERFACE.
+     *                                                      T_CLOSURE, T_TRAIT, T_ENUM, or T_INTERFACE.
      */
     public function getDeclarationName($stackPtr)
     {
@@ -1240,8 +1287,9 @@ class File
             && $tokenCode !== T_CLASS
             && $tokenCode !== T_INTERFACE
             && $tokenCode !== T_TRAIT
+            && $tokenCode !== T_ENUM
         ) {
-            throw new RuntimeException('Token type "'.$this->tokens[$stackPtr]['type'].'" is not T_FUNCTION, T_CLASS, T_INTERFACE or T_TRAIT');
+            throw new RuntimeException('Token type "'.$this->tokens[$stackPtr]['type'].'" is not T_FUNCTION, T_CLASS, T_INTERFACE, T_TRAIT or T_ENUM');
         }
 
         if ($tokenCode === T_FUNCTION
@@ -1254,9 +1302,7 @@ class File
 
         $content = null;
         for ($i = $stackPtr; $i < $this->numTokens; $i++) {
-            if ($this->tokens[$i]['code'] === T_STRING
-                || $this->tokens[$i]['code'] === T_FN
-            ) {
+            if ($this->tokens[$i]['code'] === T_STRING) {
                 $content = $this->tokens[$i]['content'];
                 break;
             }
@@ -1276,30 +1322,40 @@ class File
      *
      * <code>
      *   0 => array(
-     *         'name'                => '$var',  // The variable name.
-     *         'token'               => integer, // The stack pointer to the variable name.
-     *         'content'             => string,  // The full content of the variable definition.
-     *         'pass_by_reference'   => boolean, // Is the variable passed by reference?
-     *         'reference_token'     => integer, // The stack pointer to the reference operator
-     *                                           // or FALSE if the param is not passed by reference.
-     *         'variable_length'     => boolean, // Is the param of variable length through use of `...` ?
-     *         'variadic_token'      => integer, // The stack pointer to the ... operator
-     *                                           // or FALSE if the param is not variable length.
-     *         'type_hint'           => string,  // The type hint for the variable.
-     *         'type_hint_token'     => integer, // The stack pointer to the start of the type hint
-     *                                           // or FALSE if there is no type hint.
-     *         'type_hint_end_token' => integer, // The stack pointer to the end of the type hint
-     *                                           // or FALSE if there is no type hint.
-     *         'nullable_type'       => boolean, // TRUE if the var type is nullable.
-     *         'comma_token'         => integer, // The stack pointer to the comma after the param
-     *                                           // or FALSE if this is the last param.
+     *         'name'                => string,        // The variable name.
+     *         'token'               => integer,       // The stack pointer to the variable name.
+     *         'content'             => string,        // The full content of the variable definition.
+     *         'has_attributes'      => boolean,       // Does the parameter have one or more attributes attached ?
+     *         'pass_by_reference'   => boolean,       // Is the variable passed by reference?
+     *         'reference_token'     => integer|false, // The stack pointer to the reference operator
+     *                                                 // or FALSE if the param is not passed by reference.
+     *         'variable_length'     => boolean,       // Is the param of variable length through use of `...` ?
+     *         'variadic_token'      => integer|false, // The stack pointer to the ... operator
+     *                                                 // or FALSE if the param is not variable length.
+     *         'type_hint'           => string,        // The type hint for the variable.
+     *         'type_hint_token'     => integer|false, // The stack pointer to the start of the type hint
+     *                                                 // or FALSE if there is no type hint.
+     *         'type_hint_end_token' => integer|false, // The stack pointer to the end of the type hint
+     *                                                 // or FALSE if there is no type hint.
+     *         'nullable_type'       => boolean,       // TRUE if the type is preceded by the nullability
+     *                                                 // operator.
+     *         'comma_token'         => integer|false, // The stack pointer to the comma after the param
+     *                                                 // or FALSE if this is the last param.
      *        )
      * </code>
      *
-     * Parameters with default values have an additional array indexs of:
+     * Parameters with default values have additional array indexes of:
      *         'default'             => string,  // The full content of the default value.
      *         'default_token'       => integer, // The stack pointer to the start of the default value.
      *         'default_equal_token' => integer, // The stack pointer to the equals sign.
+     *
+     * Parameters declared using PHP 8 constructor property promotion, have these additional array indexes:
+     *         'property_visibility' => string,        // The property visibility as declared.
+     *         'visibility_token'    => integer|false, // The stack pointer to the visibility modifier token
+     *                                                 // or FALSE if the visibility is not explicitly declared.
+     *         'property_readonly'   => boolean,       // TRUE if the readonly keyword was found.
+     *         'readonly_token'      => integer,       // The stack pointer to the readonly modifier token.
+     *                                                 // This index will only be set if the property is readonly.
      *
      * @param int $stackPtr The position in the stack of the function token
      *                      to acquire the parameters for.
@@ -1346,6 +1402,7 @@ class File
         $defaultStart    = null;
         $equalToken      = null;
         $paramCount      = 0;
+        $hasAttributes   = false;
         $passByReference = false;
         $referenceToken  = false;
         $variableLength  = false;
@@ -1354,6 +1411,8 @@ class File
         $typeHintToken   = false;
         $typeHintEndToken = false;
         $nullableType     = false;
+        $visibilityToken  = null;
+        $readonlyToken    = null;
 
         for ($i = $paramStart; $i <= $closer; $i++) {
             // Check to see if this token has a parenthesis or bracket opener. If it does
@@ -1363,18 +1422,25 @@ class File
             if (isset($this->tokens[$i]['parenthesis_opener']) === true) {
                 // Don't do this if it's the close parenthesis for the method.
                 if ($i !== $this->tokens[$i]['parenthesis_closer']) {
-                    $i = ($this->tokens[$i]['parenthesis_closer'] + 1);
+                    $i = $this->tokens[$i]['parenthesis_closer'];
+                    continue;
                 }
             }
 
             if (isset($this->tokens[$i]['bracket_opener']) === true) {
-                // Don't do this if it's the close parenthesis for the method.
                 if ($i !== $this->tokens[$i]['bracket_closer']) {
-                    $i = ($this->tokens[$i]['bracket_closer'] + 1);
+                    $i = $this->tokens[$i]['bracket_closer'];
+                    continue;
                 }
             }
 
             switch ($this->tokens[$i]['code']) {
+            case T_ATTRIBUTE:
+                $hasAttributes = true;
+
+                // Skip to the end of the attribute.
+                $i = $this->tokens[$i]['attribute_closer'];
+                break;
             case T_BITWISE_AND:
                 if ($defaultStart === null) {
                     $passByReference = true;
@@ -1443,7 +1509,13 @@ class File
                     $typeHintEndToken = $i;
                 }
                 break;
+            case T_NAMESPACE:
             case T_NS_SEPARATOR:
+            case T_TYPE_UNION:
+            case T_TYPE_INTERSECTION:
+            case T_FALSE:
+            case T_TRUE:
+            case T_NULL:
                 // Part of a type hint or default value.
                 if ($defaultStart === null) {
                     if ($typeHintToken === false) {
@@ -1459,6 +1531,18 @@ class File
                     $nullableType     = true;
                     $typeHint        .= $this->tokens[$i]['content'];
                     $typeHintEndToken = $i;
+                }
+                break;
+            case T_PUBLIC:
+            case T_PROTECTED:
+            case T_PRIVATE:
+                if ($defaultStart === null) {
+                    $visibilityToken = $i;
+                }
+                break;
+            case T_READONLY:
+                if ($defaultStart === null) {
+                    $readonlyToken = $i;
                 }
                 break;
             case T_CLOSE_PARENTHESIS:
@@ -1480,6 +1564,7 @@ class File
                     $vars[$paramCount]['default_equal_token'] = $equalToken;
                 }
 
+                $vars[$paramCount]['has_attributes']      = $hasAttributes;
                 $vars[$paramCount]['pass_by_reference']   = $passByReference;
                 $vars[$paramCount]['reference_token']     = $referenceToken;
                 $vars[$paramCount]['variable_length']     = $variableLength;
@@ -1488,6 +1573,22 @@ class File
                 $vars[$paramCount]['type_hint_token']     = $typeHintToken;
                 $vars[$paramCount]['type_hint_end_token'] = $typeHintEndToken;
                 $vars[$paramCount]['nullable_type']       = $nullableType;
+
+                if ($visibilityToken !== null || $readonlyToken !== null) {
+                    $vars[$paramCount]['property_visibility'] = 'public';
+                    $vars[$paramCount]['visibility_token']    = false;
+                    $vars[$paramCount]['property_readonly']   = false;
+
+                    if ($visibilityToken !== null) {
+                        $vars[$paramCount]['property_visibility'] = $this->tokens[$visibilityToken]['content'];
+                        $vars[$paramCount]['visibility_token']    = $visibilityToken;
+                    }
+
+                    if ($readonlyToken !== null) {
+                        $vars[$paramCount]['property_readonly'] = true;
+                        $vars[$paramCount]['readonly_token']    = $readonlyToken;
+                    }
+                }
 
                 if ($this->tokens[$i]['code'] === T_COMMA) {
                     $vars[$paramCount]['comma_token'] = $i;
@@ -1500,6 +1601,7 @@ class File
                 $paramStart       = ($i + 1);
                 $defaultStart     = null;
                 $equalToken       = null;
+                $hasAttributes    = false;
                 $passByReference  = false;
                 $referenceToken   = false;
                 $variableLength   = false;
@@ -1508,11 +1610,13 @@ class File
                 $typeHintToken    = false;
                 $typeHintEndToken = false;
                 $nullableType     = false;
+                $visibilityToken  = null;
+                $readonlyToken    = null;
 
                 $paramCount++;
                 break;
             case T_EQUAL:
-                $defaultStart = $this->findNext(Util\Tokens::$emptyTokens, ($i + 1), null, true);
+                $defaultStart = $this->findNext(Tokens::$emptyTokens, ($i + 1), null, true);
                 $equalToken   = $i;
                 break;
             }//end switch
@@ -1529,16 +1633,19 @@ class File
      * The format of the return value is:
      * <code>
      *   array(
-     *    'scope'                => 'public', // Public, private, or protected
-     *    'scope_specified'      => true,     // TRUE if the scope keyword was found.
-     *    'return_type'          => '',       // The return type of the method.
-     *    'return_type_token'    => integer,  // The stack pointer to the start of the return type
-     *                                        // or FALSE if there is no return type.
-     *    'nullable_return_type' => false,    // TRUE if the return type is nullable.
-     *    'is_abstract'          => false,    // TRUE if the abstract keyword was found.
-     *    'is_final'             => false,    // TRUE if the final keyword was found.
-     *    'is_static'            => false,    // TRUE if the static keyword was found.
-     *    'has_body'             => false,    // TRUE if the method has a body
+     *    'scope'                 => string,        // Public, private, or protected
+     *    'scope_specified'       => boolean,       // TRUE if the scope keyword was found.
+     *    'return_type'           => string,        // The return type of the method.
+     *    'return_type_token'     => integer|false, // The stack pointer to the start of the return type
+     *                                              // or FALSE if there is no return type.
+     *    'return_type_end_token' => integer|false, // The stack pointer to the end of the return type
+     *                                              // or FALSE if there is no return type.
+     *    'nullable_return_type'  => boolean,       // TRUE if the return type is preceded by the
+     *                                              // nullability operator.
+     *    'is_abstract'           => boolean,       // TRUE if the abstract keyword was found.
+     *    'is_final'              => boolean,       // TRUE if the final keyword was found.
+     *    'is_static'             => boolean,       // TRUE if the static keyword was found.
+     *    'has_body'              => boolean,       // TRUE if the method has a body
      *   );
      * </code>
      *
@@ -1617,6 +1724,7 @@ class File
 
         $returnType         = '';
         $returnTypeToken    = false;
+        $returnTypeEndToken = false;
         $nullableReturnType = false;
         $hasBody            = true;
 
@@ -1627,11 +1735,18 @@ class File
             }
 
             $valid = [
-                T_STRING       => T_STRING,
-                T_CALLABLE     => T_CALLABLE,
-                T_SELF         => T_SELF,
-                T_PARENT       => T_PARENT,
-                T_NS_SEPARATOR => T_NS_SEPARATOR,
+                T_STRING            => T_STRING,
+                T_CALLABLE          => T_CALLABLE,
+                T_SELF              => T_SELF,
+                T_PARENT            => T_PARENT,
+                T_STATIC            => T_STATIC,
+                T_FALSE             => T_FALSE,
+                T_TRUE              => T_TRUE,
+                T_NULL              => T_NULL,
+                T_NAMESPACE         => T_NAMESPACE,
+                T_NS_SEPARATOR      => T_NS_SEPARATOR,
+                T_TYPE_UNION        => T_TYPE_UNION,
+                T_TYPE_INTERSECTION => T_TYPE_INTERSECTION,
             ];
 
             for ($i = $this->tokens[$stackPtr]['parenthesis_closer']; $i < $this->numTokens; $i++) {
@@ -1640,6 +1755,20 @@ class File
                 ) {
                     // End of function definition.
                     break;
+                }
+
+                if ($this->tokens[$i]['code'] === T_USE) {
+                    // Skip over closure use statements.
+                    for ($j = ($i + 1); $j < $this->numTokens && isset(Tokens::$emptyTokens[$this->tokens[$j]['code']]) === true; $j++);
+                    if ($this->tokens[$j]['code'] === T_OPEN_PARENTHESIS) {
+                        if (isset($this->tokens[$j]['parenthesis_closer']) === false) {
+                            // Live coding/parse error, stop parsing.
+                            break;
+                        }
+
+                        $i = $this->tokens[$j]['parenthesis_closer'];
+                        continue;
+                    }
                 }
 
                 if ($this->tokens[$i]['code'] === T_NULLABLE) {
@@ -1651,9 +1780,10 @@ class File
                         $returnTypeToken = $i;
                     }
 
-                    $returnType .= $this->tokens[$i]['content'];
+                    $returnType        .= $this->tokens[$i]['content'];
+                    $returnTypeEndToken = $i;
                 }
-            }
+            }//end for
 
             if ($this->tokens[$stackPtr]['code'] === T_FN) {
                 $bodyToken = T_FN_ARROW;
@@ -1670,15 +1800,16 @@ class File
         }
 
         return [
-            'scope'                => $scope,
-            'scope_specified'      => $scopeSpecified,
-            'return_type'          => $returnType,
-            'return_type_token'    => $returnTypeToken,
-            'nullable_return_type' => $nullableReturnType,
-            'is_abstract'          => $isAbstract,
-            'is_final'             => $isFinal,
-            'is_static'            => $isStatic,
-            'has_body'             => $hasBody,
+            'scope'                 => $scope,
+            'scope_specified'       => $scopeSpecified,
+            'return_type'           => $returnType,
+            'return_type_token'     => $returnTypeToken,
+            'return_type_end_token' => $returnTypeEndToken,
+            'nullable_return_type'  => $nullableReturnType,
+            'is_abstract'           => $isAbstract,
+            'is_final'              => $isFinal,
+            'is_static'             => $isStatic,
+            'has_body'              => $hasBody,
         ];
 
     }//end getMethodProperties()
@@ -1691,15 +1822,17 @@ class File
      *
      * <code>
      *   array(
-     *    'scope'           => string,  // Public, private, or protected.
-     *    'scope_specified' => boolean, // TRUE if the scope was explicitly specified.
-     *    'is_static'       => boolean, // TRUE if the static keyword was found.
-     *    'type'            => string,  // The type of the var (empty if no type specified).
-     *    'type_token'      => integer, // The stack pointer to the start of the type
-     *                                  // or FALSE if there is no type.
-     *    'type_end_token'  => integer, // The stack pointer to the end of the type
-     *                                  // or FALSE if there is no type.
-     *    'nullable_type'   => boolean, // TRUE if the type is nullable.
+     *    'scope'           => string,        // Public, private, or protected.
+     *    'scope_specified' => boolean,       // TRUE if the scope was explicitly specified.
+     *    'is_static'       => boolean,       // TRUE if the static keyword was found.
+     *    'is_readonly'     => boolean,       // TRUE if the readonly keyword was found.
+     *    'type'            => string,        // The type of the var (empty if no type specified).
+     *    'type_token'      => integer|false, // The stack pointer to the start of the type
+     *                                        // or FALSE if there is no type.
+     *    'type_end_token'  => integer|false, // The stack pointer to the end of the type
+     *                                        // or FALSE if there is no type.
+     *    'nullable_type'   => boolean,       // TRUE if the type is preceded by the nullability
+     *                                        // operator.
      *   );
      * </code>
      *
@@ -1725,23 +1858,26 @@ class File
             && $this->tokens[$ptr]['code'] !== T_TRAIT)
         ) {
             if (isset($this->tokens[$ptr]) === true
-                && $this->tokens[$ptr]['code'] === T_INTERFACE
+                && ($this->tokens[$ptr]['code'] === T_INTERFACE
+                || $this->tokens[$ptr]['code'] === T_ENUM)
             ) {
-                // T_VARIABLEs in interfaces can actually be method arguments
-                // but they wont be seen as being inside the method because there
+                // T_VARIABLEs in interfaces/enums can actually be method arguments
+                // but they won't be seen as being inside the method because there
                 // are no scope openers and closers for abstract methods. If it is in
                 // parentheses, we can be pretty sure it is a method argument.
                 if (isset($this->tokens[$stackPtr]['nested_parenthesis']) === false
                     || empty($this->tokens[$stackPtr]['nested_parenthesis']) === true
                 ) {
-                    $error = 'Possible parse error: interfaces may not include member vars';
-                    $this->addWarning($error, $stackPtr, 'Internal.ParseError.InterfaceHasMemberVar');
+                    $error = 'Possible parse error: %ss may not include member vars';
+                    $code  = sprintf('Internal.ParseError.%sHasMemberVar', ucfirst($this->tokens[$ptr]['content']));
+                    $data  = [strtolower($this->tokens[$ptr]['content'])];
+                    $this->addWarning($error, $stackPtr, $code, $data);
                     return [];
                 }
             } else {
                 throw new RuntimeException('$stackPtr is not a class member var');
             }
-        }
+        }//end if
 
         // Make sure it's not a method parameter.
         if (empty($this->tokens[$stackPtr]['nested_parenthesis']) === false) {
@@ -1761,19 +1897,22 @@ class File
             T_PROTECTED => T_PROTECTED,
             T_STATIC    => T_STATIC,
             T_VAR       => T_VAR,
+            T_READONLY  => T_READONLY,
         ];
 
-        $valid += Util\Tokens::$emptyTokens;
+        $valid += Tokens::$emptyTokens;
 
         $scope          = 'public';
         $scopeSpecified = false;
         $isStatic       = false;
+        $isReadonly     = false;
 
         $startOfStatement = $this->findPrevious(
             [
                 T_SEMICOLON,
                 T_OPEN_CURLY_BRACKET,
                 T_CLOSE_CURLY_BRACKET,
+                T_ATTRIBUTE_END,
             ],
             ($stackPtr - 1)
         );
@@ -1799,6 +1938,9 @@ class File
             case T_STATIC:
                 $isStatic = true;
                 break;
+            case T_READONLY:
+                $isReadonly = true;
+                break;
             }
         }//end for
 
@@ -1810,11 +1952,17 @@ class File
         if ($i < $stackPtr) {
             // We've found a type.
             $valid = [
-                T_STRING       => T_STRING,
-                T_CALLABLE     => T_CALLABLE,
-                T_SELF         => T_SELF,
-                T_PARENT       => T_PARENT,
-                T_NS_SEPARATOR => T_NS_SEPARATOR,
+                T_STRING            => T_STRING,
+                T_CALLABLE          => T_CALLABLE,
+                T_SELF              => T_SELF,
+                T_PARENT            => T_PARENT,
+                T_FALSE             => T_FALSE,
+                T_TRUE              => T_TRUE,
+                T_NULL              => T_NULL,
+                T_NAMESPACE         => T_NAMESPACE,
+                T_NS_SEPARATOR      => T_NS_SEPARATOR,
+                T_TYPE_UNION        => T_TYPE_UNION,
+                T_TYPE_INTERSECTION => T_TYPE_INTERSECTION,
             ];
 
             for ($i; $i < $stackPtr; $i++) {
@@ -1846,6 +1994,7 @@ class File
             'scope'           => $scope,
             'scope_specified' => $scopeSpecified,
             'is_static'       => $isStatic,
+            'is_readonly'     => $isReadonly,
             'type'            => $type,
             'type_token'      => $typeToken,
             'type_end_token'  => $typeEndToken,
@@ -1861,8 +2010,9 @@ class File
      * The format of the return value is:
      * <code>
      *   array(
-     *    'is_abstract' => false, // true if the abstract keyword was found.
-     *    'is_final'    => false, // true if the final keyword was found.
+     *    'is_abstract' => boolean, // TRUE if the abstract keyword was found.
+     *    'is_final'    => boolean, // TRUE if the final keyword was found.
+     *    'is_readonly' => boolean, // TRUE if the readonly keyword was found.
      *   );
      * </code>
      *
@@ -1882,6 +2032,7 @@ class File
         $valid = [
             T_FINAL       => T_FINAL,
             T_ABSTRACT    => T_ABSTRACT,
+            T_READONLY    => T_READONLY,
             T_WHITESPACE  => T_WHITESPACE,
             T_COMMENT     => T_COMMENT,
             T_DOC_COMMENT => T_DOC_COMMENT,
@@ -1889,6 +2040,7 @@ class File
 
         $isAbstract = false;
         $isFinal    = false;
+        $isReadonly = false;
 
         for ($i = ($stackPtr - 1); $i > 0; $i--) {
             if (isset($valid[$this->tokens[$i]['code']]) === false) {
@@ -1903,12 +2055,17 @@ class File
             case T_FINAL:
                 $isFinal = true;
                 break;
+
+            case T_READONLY:
+                $isReadonly = true;
+                break;
             }
         }//end for
 
         return [
             'is_abstract' => $isAbstract,
             'is_final'    => $isFinal,
+            'is_readonly' => $isReadonly,
         ];
 
     }//end getClassProperties()
@@ -1931,13 +2088,14 @@ class File
         }
 
         $tokenBefore = $this->findPrevious(
-            Util\Tokens::$emptyTokens,
+            Tokens::$emptyTokens,
             ($stackPtr - 1),
             null,
             true
         );
 
         if ($this->tokens[$tokenBefore]['code'] === T_FUNCTION
+            || $this->tokens[$tokenBefore]['code'] === T_CLOSURE
             || $this->tokens[$tokenBefore]['code'] === T_FN
         ) {
             // Function returns a reference.
@@ -1954,14 +2112,14 @@ class File
             return true;
         }
 
-        if (isset(Util\Tokens::$assignmentTokens[$this->tokens[$tokenBefore]['code']]) === true) {
+        if (isset(Tokens::$assignmentTokens[$this->tokens[$tokenBefore]['code']]) === true) {
             // This is directly after an assignment. It's a reference. Even if
             // it is part of an operation, the other tests will handle it.
             return true;
         }
 
         $tokenAfter = $this->findNext(
-            Util\Tokens::$emptyTokens,
+            Tokens::$emptyTokens,
             ($stackPtr + 1),
             null,
             true
@@ -1978,22 +2136,11 @@ class File
                 $owner = $this->tokens[$this->tokens[$lastBracket]['parenthesis_owner']];
                 if ($owner['code'] === T_FUNCTION
                     || $owner['code'] === T_CLOSURE
+                    || $owner['code'] === T_FN
                 ) {
                     $params = $this->getMethodParameters($this->tokens[$lastBracket]['parenthesis_owner']);
                     foreach ($params as $param) {
-                        $varToken = $tokenAfter;
-                        if ($param['variable_length'] === true) {
-                            $varToken = $this->findNext(
-                                (Util\Tokens::$emptyTokens + [T_ELLIPSIS]),
-                                ($stackPtr + 1),
-                                null,
-                                true
-                            );
-                        }
-
-                        if ($param['token'] === $varToken
-                            && $param['pass_by_reference'] === true
-                        ) {
+                        if ($param['reference_token'] === $stackPtr) {
                             // Function parameter declared to be passed by reference.
                             return true;
                         }
@@ -2023,7 +2170,7 @@ class File
             if ($this->tokens[$tokenAfter]['code'] === T_VARIABLE) {
                 return true;
             } else {
-                $skip   = Util\Tokens::$emptyTokens;
+                $skip   = Tokens::$emptyTokens;
                 $skip[] = T_NS_SEPARATOR;
                 $skip[] = T_SELF;
                 $skip[] = T_PARENT;
@@ -2103,19 +2250,19 @@ class File
      * @param int|string|array $types   The type(s) of tokens to search for.
      * @param int              $start   The position to start searching from in the
      *                                  token stack.
-     * @param int              $end     The end position to fail if no token is found.
+     * @param int|null         $end     The end position to fail if no token is found.
      *                                  if not specified or null, end will default to
      *                                  the start of the token stack.
      * @param bool             $exclude If true, find the previous token that is NOT of
      *                                  the types specified in $types.
-     * @param string           $value   The value that the token(s) must be equal to.
+     * @param string|null      $value   The value that the token(s) must be equal to.
      *                                  If value is omitted, tokens with any value will
      *                                  be returned.
      * @param bool             $local   If true, tokens outside the current statement
      *                                  will not be checked. IE. checking will stop
      *                                  at the previous semi-colon found.
      *
-     * @return int|bool
+     * @return int|false
      * @see    findNext()
      */
     public function findPrevious(
@@ -2184,19 +2331,19 @@ class File
      * @param int|string|array $types   The type(s) of tokens to search for.
      * @param int              $start   The position to start searching from in the
      *                                  token stack.
-     * @param int              $end     The end position to fail if no token is found.
+     * @param int|null         $end     The end position to fail if no token is found.
      *                                  if not specified or null, end will default to
      *                                  the end of the token stack.
      * @param bool             $exclude If true, find the next token that is NOT of
      *                                  a type specified in $types.
-     * @param string           $value   The value that the token(s) must be equal to.
+     * @param string|null      $value   The value that the token(s) must be equal to.
      *                                  If value is omitted, tokens with any value will
      *                                  be returned.
      * @param bool             $local   If true, tokens outside the current statement
      *                                  will not be checked. i.e., checking will stop
      *                                  at the next semi-colon found.
      *
-     * @return int|bool
+     * @return int|false
      * @see    findPrevious()
      */
     public function findNext(
@@ -2243,40 +2390,125 @@ class File
     /**
      * Returns the position of the first non-whitespace token in a statement.
      *
-     * @param int       $start  The position to start searching from in the token stack.
-     * @param int|array $ignore Token types that should not be considered stop points.
+     * @param int              $start  The position to start searching from in the token stack.
+     * @param int|string|array $ignore Token types that should not be considered stop points.
      *
      * @return int
      */
     public function findStartOfStatement($start, $ignore=null)
     {
-        $endTokens = Util\Tokens::$blockOpeners;
+        $startTokens = Tokens::$blockOpeners;
+        $startTokens[T_OPEN_SHORT_ARRAY]   = true;
+        $startTokens[T_OPEN_TAG]           = true;
+        $startTokens[T_OPEN_TAG_WITH_ECHO] = true;
 
-        $endTokens[T_COLON]            = true;
-        $endTokens[T_COMMA]            = true;
-        $endTokens[T_DOUBLE_ARROW]     = true;
-        $endTokens[T_SEMICOLON]        = true;
-        $endTokens[T_OPEN_TAG]         = true;
-        $endTokens[T_CLOSE_TAG]        = true;
-        $endTokens[T_OPEN_SHORT_ARRAY] = true;
+        $endTokens = [
+            T_CLOSE_TAG    => true,
+            T_COLON        => true,
+            T_COMMA        => true,
+            T_DOUBLE_ARROW => true,
+            T_MATCH_ARROW  => true,
+            T_SEMICOLON    => true,
+        ];
 
         if ($ignore !== null) {
             $ignore = (array) $ignore;
             foreach ($ignore as $code) {
-                unset($endTokens[$code]);
+                if (isset($startTokens[$code]) === true) {
+                    unset($startTokens[$code]);
+                }
+
+                if (isset($endTokens[$code]) === true) {
+                    unset($endTokens[$code]);
+                }
             }
         }
 
+        // If the start token is inside the case part of a match expression,
+        // find the start of the condition. If it's in the statement part, find
+        // the token that comes after the match arrow.
+        $matchExpression = $this->getCondition($start, T_MATCH);
+        if ($matchExpression !== false) {
+            for ($prevMatch = $start; $prevMatch > $this->tokens[$matchExpression]['scope_opener']; $prevMatch--) {
+                if ($prevMatch !== $start
+                    && ($this->tokens[$prevMatch]['code'] === T_MATCH_ARROW
+                    || $this->tokens[$prevMatch]['code'] === T_COMMA)
+                ) {
+                    break;
+                }
+
+                // Skip nested statements.
+                if (isset($this->tokens[$prevMatch]['bracket_opener']) === true
+                    && $prevMatch === $this->tokens[$prevMatch]['bracket_closer']
+                ) {
+                    $prevMatch = $this->tokens[$prevMatch]['bracket_opener'];
+                } else if (isset($this->tokens[$prevMatch]['parenthesis_opener']) === true
+                    && $prevMatch === $this->tokens[$prevMatch]['parenthesis_closer']
+                ) {
+                    $prevMatch = $this->tokens[$prevMatch]['parenthesis_opener'];
+                }
+            }
+
+            if ($prevMatch <= $this->tokens[$matchExpression]['scope_opener']) {
+                // We're before the arrow in the first case.
+                $next = $this->findNext(Tokens::$emptyTokens, ($this->tokens[$matchExpression]['scope_opener'] + 1), null, true);
+                if ($next === false) {
+                    return $start;
+                }
+
+                return $next;
+            }
+
+            if ($this->tokens[$prevMatch]['code'] === T_COMMA) {
+                // We're before the arrow, but not in the first case.
+                $prevMatchArrow = $this->findPrevious(T_MATCH_ARROW, ($prevMatch - 1), $this->tokens[$matchExpression]['scope_opener']);
+                if ($prevMatchArrow === false) {
+                    // We're before the arrow in the first case.
+                    $next = $this->findNext(Tokens::$emptyTokens, ($this->tokens[$matchExpression]['scope_opener'] + 1), null, true);
+                    return $next;
+                }
+
+                $end  = $this->findEndOfStatement($prevMatchArrow);
+                $next = $this->findNext(Tokens::$emptyTokens, ($end + 1), null, true);
+                return $next;
+            }
+        }//end if
+
         $lastNotEmpty = $start;
 
+        // If we are starting at a token that ends a scope block, skip to
+        // the start and continue from there.
+        // If we are starting at a token that ends a statement, skip this
+        // token so we find the true start of the statement.
+        while (isset($endTokens[$this->tokens[$start]['code']]) === true
+            || (isset($this->tokens[$start]['scope_condition']) === true
+            && $start === $this->tokens[$start]['scope_closer'])
+        ) {
+            if (isset($this->tokens[$start]['scope_condition']) === true) {
+                $start = $this->tokens[$start]['scope_condition'];
+            } else {
+                $start--;
+            }
+        }
+
         for ($i = $start; $i >= 0; $i--) {
-            if (isset($endTokens[$this->tokens[$i]['code']]) === true) {
+            if (isset($startTokens[$this->tokens[$i]['code']]) === true
+                || isset($endTokens[$this->tokens[$i]['code']]) === true
+            ) {
                 // Found the end of the previous statement.
                 return $lastNotEmpty;
             }
 
             if (isset($this->tokens[$i]['scope_opener']) === true
                 && $i === $this->tokens[$i]['scope_closer']
+                && $this->tokens[$i]['code'] !== T_CLOSE_PARENTHESIS
+                && $this->tokens[$i]['code'] !== T_END_NOWDOC
+                && $this->tokens[$i]['code'] !== T_END_HEREDOC
+                && $this->tokens[$i]['code'] !== T_BREAK
+                && $this->tokens[$i]['code'] !== T_RETURN
+                && $this->tokens[$i]['code'] !== T_CONTINUE
+                && $this->tokens[$i]['code'] !== T_THROW
+                && $this->tokens[$i]['code'] !== T_EXIT
             ) {
                 // Found the end of the previous scope block.
                 return $lastNotEmpty;
@@ -2291,9 +2523,14 @@ class File
                 && $i === $this->tokens[$i]['parenthesis_closer']
             ) {
                 $i = $this->tokens[$i]['parenthesis_opener'];
-            }
+            } else if ($this->tokens[$i]['code'] === T_CLOSE_USE_GROUP) {
+                $start = $this->findPrevious(T_OPEN_USE_GROUP, ($i - 1));
+                if ($start !== false) {
+                    $i = $start;
+                }
+            }//end if
 
-            if (isset(Util\Tokens::$emptyTokens[$this->tokens[$i]['code']]) === false) {
+            if (isset(Tokens::$emptyTokens[$this->tokens[$i]['code']]) === false) {
                 $lastNotEmpty = $i;
             }
         }//end for
@@ -2306,8 +2543,8 @@ class File
     /**
      * Returns the position of the last non-whitespace token in a statement.
      *
-     * @param int       $start  The position to start searching from in the token stack.
-     * @param int|array $ignore Token types that should not be considered stop points.
+     * @param int              $start  The position to start searching from in the token stack.
+     * @param int|string|array $ignore Token types that should not be considered stop points.
      *
      * @return int
      */
@@ -2333,8 +2570,34 @@ class File
             }
         }
 
-        $lastNotEmpty = $start;
+        // If the start token is inside the case part of a match expression,
+        // advance to the match arrow and continue looking for the
+        // end of the statement from there so that we skip over commas.
+        if ($this->tokens[$start]['code'] !== T_MATCH_ARROW) {
+            $matchExpression = $this->getCondition($start, T_MATCH);
+            if ($matchExpression !== false) {
+                $beforeArrow    = true;
+                $prevMatchArrow = $this->findPrevious(T_MATCH_ARROW, ($start - 1), $this->tokens[$matchExpression]['scope_opener']);
+                if ($prevMatchArrow !== false) {
+                    $prevComma = $this->findNext(T_COMMA, ($prevMatchArrow + 1), $start);
+                    if ($prevComma === false) {
+                        // No comma between this token and the last match arrow,
+                        // so this token exists after the arrow and we can continue
+                        // checking as normal.
+                        $beforeArrow = false;
+                    }
+                }
 
+                if ($beforeArrow === true) {
+                    $nextMatchArrow = $this->findNext(T_MATCH_ARROW, ($start + 1), $this->tokens[$matchExpression]['scope_closer']);
+                    if ($nextMatchArrow !== false) {
+                        $start = $nextMatchArrow;
+                    }
+                }
+            }//end if
+        }//end if
+
+        $lastNotEmpty = $start;
         for ($i = $start; $i < $this->numTokens; $i++) {
             if ($i !== $start && isset($endTokens[$this->tokens[$i]['code']]) === true) {
                 // Found the end of the statement.
@@ -2356,10 +2619,13 @@ class File
                 && ($i === $this->tokens[$i]['scope_opener']
                 || $i === $this->tokens[$i]['scope_condition'])
             ) {
-                if ($i === $start
-                    && (isset(Util\Tokens::$scopeOpeners[$this->tokens[$i]['code']]) === true
-                    || $this->tokens[$i]['code'] === T_FN)
-                ) {
+                if ($this->tokens[$i]['code'] === T_FN) {
+                    $lastNotEmpty = $this->tokens[$i]['scope_closer'];
+                    $i            = ($this->tokens[$i]['scope_closer'] - 1);
+                    continue;
+                }
+
+                if ($i === $start && isset(Tokens::$scopeOpeners[$this->tokens[$i]['code']]) === true) {
                     return $this->tokens[$i]['scope_closer'];
                 }
 
@@ -2379,7 +2645,7 @@ class File
                 }
             }//end if
 
-            if (isset(Util\Tokens::$emptyTokens[$this->tokens[$i]['code']]) === false) {
+            if (isset(Tokens::$emptyTokens[$this->tokens[$i]['code']]) === false) {
                 $lastNotEmpty = $i;
             }
         }//end for
@@ -2396,15 +2662,18 @@ class File
      *
      * @param int|string|array $types   The type(s) of tokens to search for.
      * @param int              $start   The position to start searching from in the
-     *                                  token stack. The first token matching on
-     *                                  this line before this token will be returned.
+     *                                  token stack.
      * @param bool             $exclude If true, find the token that is NOT of
      *                                  the types specified in $types.
      * @param string           $value   The value that the token must be equal to.
      *                                  If value is omitted, tokens with any value will
      *                                  be returned.
      *
-     * @return int | bool
+     * @return int|false The first token which matches on the line containing the start
+     *                   token, between the start of the line and the start token.
+     *                   Note: The first token matching might be the start token.
+     *                   FALSE when no matching token could be found between the start of
+     *                   the line and the start token.
      */
     public function findFirstOnLine($types, $start, $exclude=false, $value=null)
     {
@@ -2464,7 +2733,7 @@ class File
         }
 
         // Make sure the token has conditions.
-        if (isset($this->tokens[$stackPtr]['conditions']) === false) {
+        if (empty($this->tokens[$stackPtr]['conditions']) === true) {
             return false;
         }
 
@@ -2490,10 +2759,14 @@ class File
      *
      * @param int        $stackPtr The position of the token we are checking.
      * @param int|string $type     The type of token to search for.
+     * @param bool       $first    If TRUE, will return the matched condition
+     *                             furthest away from the passed token.
+     *                             If FALSE, will return the matched condition
+     *                             closest to the passed token.
      *
-     * @return int
+     * @return int|false
      */
-    public function getCondition($stackPtr, $type)
+    public function getCondition($stackPtr, $type, $first=true)
     {
         // Check for the existence of the token.
         if (isset($this->tokens[$stackPtr]) === false) {
@@ -2501,11 +2774,15 @@ class File
         }
 
         // Make sure the token has conditions.
-        if (isset($this->tokens[$stackPtr]['conditions']) === false) {
+        if (empty($this->tokens[$stackPtr]['conditions']) === true) {
             return false;
         }
 
         $conditions = $this->tokens[$stackPtr]['conditions'];
+        if ($first === false) {
+            $conditions = array_reverse($conditions, true);
+        }
+
         foreach ($conditions as $token => $condition) {
             if ($condition === $type) {
                 return $token;
@@ -2571,11 +2848,11 @@ class File
 
 
     /**
-     * Returns the names of the interfaces that the specified class implements.
+     * Returns the names of the interfaces that the specified class or enum implements.
      *
      * Returns FALSE on error or if there are no implemented interface names.
      *
-     * @param int $stackPtr The stack position of the class.
+     * @param int $stackPtr The stack position of the class or enum token.
      *
      * @return array|false
      */
@@ -2588,6 +2865,7 @@ class File
 
         if ($this->tokens[$stackPtr]['code'] !== T_CLASS
             && $this->tokens[$stackPtr]['code'] !== T_ANON_CLASS
+            && $this->tokens[$stackPtr]['code'] !== T_ENUM
         ) {
             return false;
         }

@@ -4,14 +4,15 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Files;
 
-use PHP_CodeSniffer\Ruleset;
 use PHP_CodeSniffer\Config;
+use PHP_CodeSniffer\Ruleset;
 use PHP_CodeSniffer\Util\Cache;
+use PHP_CodeSniffer\Util\Common;
 
 class LocalFile extends File
 {
@@ -29,7 +30,7 @@ class LocalFile extends File
     public function __construct($path, Ruleset $ruleset, Config $config)
     {
         $this->path = trim($path);
-        if (is_readable($this->path) === false) {
+        if (Common::isReadable($this->path) === false) {
             parent::__construct($this->path, $ruleset, $config);
             $error = 'Error opening file; file no longer exists or you do not have access to read the file';
             $this->addMessage(true, $error, 1, 1, 'Internal.LocalFile', [], 5, false);

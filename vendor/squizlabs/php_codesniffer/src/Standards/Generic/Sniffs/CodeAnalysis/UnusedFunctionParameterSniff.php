@@ -11,7 +11,7 @@
  * @author    Manuel Pichler <mapi@manuel-pichler.de>
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2007-2014 Manuel Pichler. All rights reserved.
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\CodeAnalysis;
@@ -23,11 +23,44 @@ use PHP_CodeSniffer\Util\Tokens;
 class UnusedFunctionParameterSniff implements Sniff
 {
 
+    /**
+     * The list of class type hints which will be ignored.
+     *
+     * @var array
+     */
+    public $ignoreTypeHints = [];
+
+    /**
+     * A list of all PHP magic methods with fixed method signatures.
+     *
+     * Note: `__construct()` and `__invoke()` are excluded on purpose
+     * as their method signature is not fixed.
+     *
+     * @var array
+     */
+    private $magicMethods = [
+        '__destruct'    => true,
+        '__call'        => true,
+        '__callstatic'  => true,
+        '__get'         => true,
+        '__set'         => true,
+        '__isset'       => true,
+        '__unset'       => true,
+        '__sleep'       => true,
+        '__wakeup'      => true,
+        '__serialize'   => true,
+        '__unserialize' => true,
+        '__tostring'    => true,
+        '__set_state'   => true,
+        '__clone'       => true,
+        '__debuginfo'   => true,
+    ];
+
 
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
@@ -61,17 +94,29 @@ class UnusedFunctionParameterSniff implements Sniff
 
         $errorCode  = 'Found';
         $implements = false;
-        $extends    = false;
-        $classPtr   = $phpcsFile->getCondition($stackPtr, T_CLASS);
-        if ($classPtr !== false) {
-            $implements = $phpcsFile->findImplementedInterfaceNames($classPtr);
-            $extends    = $phpcsFile->findExtendedClassName($classPtr);
-            if ($extends !== false) {
-                $errorCode .= 'InExtendedClass';
-            } else if ($implements !== false) {
-                $errorCode .= 'InImplementedInterface';
+
+        if ($token['code'] === T_FUNCTION) {
+            $classPtr = $phpcsFile->getCondition($stackPtr, T_CLASS);
+            if ($classPtr !== false) {
+                // Check for magic methods and ignore these as the method signature cannot be changed.
+                $methodName = $phpcsFile->getDeclarationName($stackPtr);
+                if (empty($methodName) === false) {
+                    $methodNameLc = strtolower($methodName);
+                    if (isset($this->magicMethods[$methodNameLc]) === true) {
+                        return;
+                    }
+                }
+
+                // Check for extends/implements and adjust the error code when found.
+                $implements = $phpcsFile->findImplementedInterfaceNames($classPtr);
+                $extends    = $phpcsFile->findExtendedClassName($classPtr);
+                if ($extends !== false) {
+                    $errorCode .= 'InExtendedClass';
+                } else if ($implements !== false) {
+                    $errorCode .= 'InImplementedInterface';
+                }
             }
-        }
+        }//end if
 
         $params       = [];
         $methodParams = $phpcsFile->getMethodParameters($stackPtr);
@@ -83,11 +128,23 @@ class UnusedFunctionParameterSniff implements Sniff
         }
 
         foreach ($methodParams as $param) {
+            if (isset($param['property_visibility']) === true) {
+                // Ignore constructor property promotion.
+                continue;
+            }
+
             $params[$param['name']] = $stackPtr;
         }
 
         $next = ++$token['scope_opener'];
         $end  = --$token['scope_closer'];
+
+        // Check the end token for arrow functions as
+        // they can end at a content token due to not having
+        // a clearly defined closing token.
+        if ($token['code'] === T_FN) {
+            ++$end;
+        }
 
         $foundContent = false;
         $validTokens  = [
@@ -116,18 +173,22 @@ class UnusedFunctionParameterSniff implements Sniff
 
                 // A return statement as the first content indicates an interface method.
                 if ($code === T_RETURN) {
-                    $tmp = $phpcsFile->findNext(Tokens::$emptyTokens, ($next + 1), null, true);
-                    if ($tmp === false && $implements !== false) {
+                    $firstNonEmptyTokenAfterReturn = $phpcsFile->findNext(Tokens::$emptyTokens, ($next + 1), null, true);
+                    if ($tokens[$firstNonEmptyTokenAfterReturn]['code'] === T_SEMICOLON && $implements !== false) {
                         return;
                     }
 
-                    // There is a return.
-                    if ($tokens[$tmp]['code'] === T_SEMICOLON && $implements !== false) {
-                        return;
-                    }
+                    $secondNonEmptyTokenAfterReturn = $phpcsFile->findNext(
+                        Tokens::$emptyTokens,
+                        ($firstNonEmptyTokenAfterReturn + 1),
+                        null,
+                        true
+                    );
 
-                    $tmp = $phpcsFile->findNext(Tokens::$emptyTokens, ($tmp + 1), null, true);
-                    if ($tmp !== false && $tokens[$tmp]['code'] === T_SEMICOLON && $implements !== false) {
+                    if ($secondNonEmptyTokenAfterReturn !== false
+                        && $tokens[$secondNonEmptyTokenAfterReturn]['code'] === T_SEMICOLON
+                        && $implements !== false
+                    ) {
                         // There is a return <token>.
                         return;
                     }
@@ -191,6 +252,10 @@ class UnusedFunctionParameterSniff implements Sniff
             // If there is only one parameter and it is unused, no need for additional errorcode toggling logic.
             if ($methodParamsCount === 1) {
                 foreach ($params as $paramName => $position) {
+                    if (in_array($methodParams[0]['type_hint'], $this->ignoreTypeHints, true) === true) {
+                        continue;
+                    }
+
                     $data = [$paramName];
                     $phpcsFile->addWarning($error, $position, $errorCode, $data);
                 }
@@ -207,6 +272,7 @@ class UnusedFunctionParameterSniff implements Sniff
                         $errorInfo[$methodParams[$i]['name']] = [
                             'position'  => $params[$methodParams[$i]['name']],
                             'errorcode' => $errorCode.'BeforeLastUsed',
+                            'typehint'  => $methodParams[$i]['type_hint'],
                         ];
                     }
                 } else {
@@ -216,14 +282,19 @@ class UnusedFunctionParameterSniff implements Sniff
                         $errorInfo[$methodParams[$i]['name']] = [
                             'position'  => $params[$methodParams[$i]['name']],
                             'errorcode' => $errorCode.'AfterLastUsed',
+                            'typehint'  => $methodParams[$i]['type_hint'],
                         ];
                     }
                 }
-            }
+            }//end for
 
             if (count($errorInfo) > 0) {
                 $errorInfo = array_reverse($errorInfo);
                 foreach ($errorInfo as $paramName => $info) {
+                    if (in_array($info['typehint'], $this->ignoreTypeHints, true) === true) {
+                        continue;
+                    }
+
                     $data = [$paramName];
                     $phpcsFile->addWarning($error, $info['position'], $info['errorcode'], $data);
                 }

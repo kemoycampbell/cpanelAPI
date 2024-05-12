@@ -7,7 +7,7 @@
  *
  * @author    Juliette Reinders Folmer <phpcs_nospam@adviesenzo.nl>
  * @copyright 2017 Juliette Reinders Folmer. All rights reserved.
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\CodeAnalysis;
@@ -23,7 +23,7 @@ class EmptyPHPStatementSniff implements Sniff
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return int[]
+     * @return array<int|string>
      */
     public function register()
     {
@@ -61,14 +61,18 @@ class EmptyPHPStatementSniff implements Sniff
                 && $tokens[$prevNonEmpty]['code'] !== T_OPEN_TAG
                 && $tokens[$prevNonEmpty]['code'] !== T_OPEN_TAG_WITH_ECHO
             ) {
-                if ($tokens[$prevNonEmpty]['code'] !== T_CLOSE_CURLY_BRACKET
-                    || isset($tokens[$prevNonEmpty]['scope_condition']) === false
+                if (isset($tokens[$prevNonEmpty]['scope_condition']) === false) {
+                    return;
+                }
+
+                if ($tokens[$prevNonEmpty]['scope_opener'] !== $prevNonEmpty
+                    && $tokens[$prevNonEmpty]['code'] !== T_CLOSE_CURLY_BRACKET
                 ) {
                     return;
                 }
 
                 $scopeOwner = $tokens[$tokens[$prevNonEmpty]['scope_condition']]['code'];
-                if ($scopeOwner === T_CLOSURE || $scopeOwner === T_ANON_CLASS) {
+                if ($scopeOwner === T_CLOSURE || $scopeOwner === T_ANON_CLASS || $scopeOwner === T_MATCH) {
                     return;
                 }
 

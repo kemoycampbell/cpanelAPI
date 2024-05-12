@@ -73,3 +73,28 @@ EOD
 ) {
     return;
 }
+
+    if (
+        isset($foo) === true
+        && $bar > $foo
+        /*
+         * A multi-line comment.
+         */
+        && $foo === true
+    ) {
+        break;
+    }
+
+match (
+    $expr1 &&
+    $expr2 &&
+    $expr3
+    ) {
+    // structure body
+};
+
+match ($expr1 &&
+$expr2 &&
+  $expr3) {
+      // structure body
+};

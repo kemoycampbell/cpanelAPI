@@ -4,7 +4,7 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Squiz\Sniffs\Operators;
@@ -44,7 +44,7 @@ class ComparisonOperatorUsageSniff implements Sniff
     /**
      * A list of invalid operators with their alternatives.
      *
-     * @var array<int, string>
+     * @var array<string, array<int, string>>
      */
     private static $invalidOps = [
         'PHP' => [
@@ -62,7 +62,7 @@ class ComparisonOperatorUsageSniff implements Sniff
     /**
      * Registers the token types that this sniff wishes to listen to.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
@@ -158,9 +158,9 @@ class ComparisonOperatorUsageSniff implements Sniff
             $end   = $tokens[$stackPtr]['parenthesis_closer'];
         }//end if
 
-        $requiredOps = 0;
-        $foundOps    = 0;
-        $foundBools  = 0;
+        $requiredOps   = 0;
+        $foundOps      = 0;
+        $foundBooleans = 0;
 
         $lastNonEmpty = $start;
 
@@ -188,7 +188,7 @@ class ComparisonOperatorUsageSniff implements Sniff
             }
 
             if ($tokens[$i]['code'] === T_TRUE || $tokens[$i]['code'] === T_FALSE) {
-                $foundBools++;
+                $foundBooleans++;
             }
 
             if ($phpcsFile->tokenizerType !== 'JS'
@@ -223,7 +223,7 @@ class ComparisonOperatorUsageSniff implements Sniff
 
         if ($phpcsFile->tokenizerType !== 'JS'
             && $foundOps < $requiredOps
-            && ($requiredOps !== $foundBools)
+            && ($requiredOps !== $foundBooleans)
         ) {
             $error = 'Implicit true comparisons prohibited; use === TRUE instead';
             $phpcsFile->addError($error, $stackPtr, 'ImplicitTrue');

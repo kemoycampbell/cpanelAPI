@@ -7,7 +7,7 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\PHP;
@@ -56,7 +56,7 @@ class ForbiddenFunctionsSniff implements Sniff
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
@@ -120,18 +120,19 @@ class ForbiddenFunctionsSniff implements Sniff
         $tokens = $phpcsFile->getTokens();
 
         $ignore = [
-            T_DOUBLE_COLON    => true,
-            T_OBJECT_OPERATOR => true,
-            T_FUNCTION        => true,
-            T_CONST           => true,
-            T_PUBLIC          => true,
-            T_PRIVATE         => true,
-            T_PROTECTED       => true,
-            T_AS              => true,
-            T_NEW             => true,
-            T_INSTEADOF       => true,
-            T_NS_SEPARATOR    => true,
-            T_IMPLEMENTS      => true,
+            T_DOUBLE_COLON             => true,
+            T_OBJECT_OPERATOR          => true,
+            T_NULLSAFE_OBJECT_OPERATOR => true,
+            T_FUNCTION                 => true,
+            T_CONST                    => true,
+            T_PUBLIC                   => true,
+            T_PRIVATE                  => true,
+            T_PROTECTED                => true,
+            T_AS                       => true,
+            T_NEW                      => true,
+            T_INSTEADOF                => true,
+            T_NS_SEPARATOR             => true,
+            T_IMPLEMENTS               => true,
         ];
 
         $prevToken = $phpcsFile->findPrevious(T_WHITESPACE, ($stackPtr - 1), null, true);
@@ -159,6 +160,11 @@ class ForbiddenFunctionsSniff implements Sniff
 
         if ($tokens[$stackPtr]['code'] === T_STRING && $tokens[$nextToken]['code'] !== T_OPEN_PARENTHESIS) {
             // Not a call to a PHP function.
+            return;
+        }
+
+        if (empty($tokens[$stackPtr]['nested_attributes']) === false) {
+            // Class instantiation in attribute, not function call.
             return;
         }
 

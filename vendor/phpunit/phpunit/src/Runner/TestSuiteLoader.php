@@ -9,14 +9,134 @@
  */
 namespace PHPUnit\Runner;
 
+use function array_diff;
+use function array_values;
+use function basename;
+use function class_exists;
+use function get_declared_classes;
+use function realpath;
+use function str_ends_with;
+use function strpos;
+use function strtolower;
+use function substr;
+use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 /**
- * An interface to define how a test suite should be loaded.
+ * @internal This class is not covered by the backward compatibility promise for PHPUnit
  */
-interface TestSuiteLoader
+final class TestSuiteLoader
 {
-    public function load(string $suiteClassName, string $suiteClassFile = ''): ReflectionClass;
+    /**
+     * @psalm-var list<class-string>
+     */
+    private static array $declaredClasses = [];
 
-    public function reload(ReflectionClass $aClass): ReflectionClass;
+    /**
+     * @psalm-var array<non-empty-string, list<class-string>>
+     */
+    private static array $fileToClassesMap = [];
+
+    /**
+     * @throws Exception
+     *
+     * @return ReflectionClass<TestCase>
+     */
+    public function load(string $suiteClassFile): ReflectionClass
+    {
+        $suiteClassFile = realpath($suiteClassFile);
+        $suiteClassName = $this->classNameFromFileName($suiteClassFile);
+        $loadedClasses  = $this->loadSuiteClassFile($suiteClassFile);
+
+        foreach ($loadedClasses as $className) {
+            /** @noinspection PhpUnhandledExceptionInspection */
+            $class = new ReflectionClass($className);
+
+            if ($class->isAnonymous()) {
+                continue;
+            }
+
+            if ($class->getFileName() !== $suiteClassFile) {
+                continue;
+            }
+
+            if (!$class->isSubclassOf(TestCase::class)) {
+                continue;
+            }
+
+            if (!str_ends_with(strtolower($class->getShortName()), strtolower($suiteClassName))) {
+                continue;
+            }
+
+            if (!$class->isAbstract()) {
+                return $class;
+            }
+
+            $e = new ClassIsAbstractException($class->getName(), $suiteClassFile);
+        }
+
+        if (isset($e)) {
+            throw $e;
+        }
+
+        if (!class_exists($suiteClassName)) {
+            throw new ClassCannotBeFoundException($suiteClassName, $suiteClassFile);
+        }
+
+        throw new ClassDoesNotExtendTestCaseException($suiteClassName, $suiteClassFile);
+    }
+
+    private function classNameFromFileName(string $suiteClassFile): string
+    {
+        $className = basename($suiteClassFile, '.php');
+        $dotPos    = strpos($className, '.');
+
+        if ($dotPos !== false) {
+            $className = substr($className, 0, $dotPos);
+        }
+
+        return $className;
+    }
+
+    /**
+     * @psalm-return list<class-string>
+     */
+    private function loadSuiteClassFile(string $suiteClassFile): array
+    {
+        if (isset(self::$fileToClassesMap[$suiteClassFile])) {
+            return self::$fileToClassesMap[$suiteClassFile];
+        }
+
+        if (empty(self::$declaredClasses)) {
+            self::$declaredClasses = get_declared_classes();
+        }
+
+        require_once $suiteClassFile;
+
+        $loadedClasses = array_values(
+            array_diff(
+                get_declared_classes(),
+                self::$declaredClasses,
+            ),
+        );
+
+        foreach ($loadedClasses as $loadedClass) {
+            /** @noinspection PhpUnhandledExceptionInspection */
+            $class = new ReflectionClass($loadedClass);
+
+            if (!isset(self::$fileToClassesMap[$class->getFileName()])) {
+                self::$fileToClassesMap[$class->getFileName()] = [];
+            }
+
+            self::$fileToClassesMap[$class->getFileName()][] = $class->getName();
+        }
+
+        self::$declaredClasses = get_declared_classes();
+
+        if (empty($loadedClasses)) {
+            return self::$declaredClasses;
+        }
+
+        return $loadedClasses;
+    }
 }

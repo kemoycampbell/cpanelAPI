@@ -495,6 +495,90 @@ interface OneBlankLineBeforeFirstFunctionClassInterface
     public function interfaceMethod();
 }
 
+// phpcs:set Squiz.WhiteSpace.FunctionSpacing spacing 1
+// phpcs:set Squiz.WhiteSpace.FunctionSpacing spacingBeforeFirst 0
+// phpcs:set Squiz.WhiteSpace.FunctionSpacing spacingAfterLast 0
+
+class MyClass {
+
+    // phpcs:disable Stnd.Cat.Sniff -- For reasons.
+
+    /**
+     * Description.
+     */
+    function a(){}
+
+    /**
+     * Description.
+     */
+    function b(){}
+
+    /**
+     * Description.
+     */
+    function c(){}
+
+    // phpcs:enable
+}
+
+class MyClass {
+    // Some unrelated comment
+    /**
+     * Description.
+     */
+    function a(){}
+
+    /**
+     * Description.
+     */
+    function b(){}
+
+    /**
+     * Description.
+     */
+    function c(){}
+    // function d() {}
+}
+
+class ClassWithAttributes {
+
+    #[Attribute1]
+    #[Attribute2]
+    function a(){}
+
+
+    #[Attribute3]
+    function b(){}
+    #[Attribute4]
+    function c(){}
+
+
+    /**
+     * Description.
+     */
+    #[Attribute5]
+    function d(){}
+    /**
+     * Description.
+     */
+    #[Attribute6]
+    #[Attribute7]
+    function e(){}
+
+
+    #[Attribute8]
+    #[Attribute9]
+    function f(){}
+}
+
 // phpcs:set Squiz.WhiteSpace.FunctionSpacing spacing 2
 // phpcs:set Squiz.WhiteSpace.FunctionSpacing spacingBeforeFirst 2
 // phpcs:set Squiz.WhiteSpace.FunctionSpacing spacingAfterLast 2
+
+// Issue #3904.
+echo 'this line belongs with the #3904 test';
+class Person {public function __construct($name){}}
+echo 'this line belongs with the #3904 test';
+
+function Foo() {} function bar($name){}
+echo 'this line belongs with the #3904 test';

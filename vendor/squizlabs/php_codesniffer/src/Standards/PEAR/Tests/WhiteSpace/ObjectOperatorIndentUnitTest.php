@@ -4,14 +4,19 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\PEAR\Tests\WhiteSpace;
 
 use PHP_CodeSniffer\Tests\Standards\AbstractSniffUnitTest;
 
-class ObjectOperatorIndentUnitTest extends AbstractSniffUnitTest
+/**
+ * Unit test class for the ObjectOperatorIndent sniff.
+ *
+ * @covers \PHP_CodeSniffer\Standards\PEAR\Sniffs\WhiteSpace\ObjectOperatorIndentSniff
+ */
+final class ObjectOperatorIndentUnitTest extends AbstractSniffUnitTest
 {
 
 
@@ -44,6 +49,13 @@ class ObjectOperatorIndentUnitTest extends AbstractSniffUnitTest
             82  => 1,
             95  => 1,
             103 => 1,
+            119 => 2,
+            122 => 1,
+            131 => 1,
+            134 => 1,
+            140 => 1,
+            141 => 1,
+            142 => 1,
         ];
 
     }//end getErrorList()

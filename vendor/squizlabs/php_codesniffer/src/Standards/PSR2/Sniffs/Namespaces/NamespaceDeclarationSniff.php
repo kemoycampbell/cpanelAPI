@@ -4,13 +4,14 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\PSR2\Sniffs\Namespaces;
 
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
+use PHP_CodeSniffer\Util\Tokens;
 
 class NamespaceDeclarationSniff implements Sniff
 {
@@ -19,7 +20,7 @@ class NamespaceDeclarationSniff implements Sniff
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
@@ -40,6 +41,12 @@ class NamespaceDeclarationSniff implements Sniff
     public function process(File $phpcsFile, $stackPtr)
     {
         $tokens = $phpcsFile->getTokens();
+
+        $nextNonEmpty = $phpcsFile->findNext(Tokens::$emptyTokens, ($stackPtr + 1), null, true);
+        if ($tokens[$nextNonEmpty]['code'] === T_NS_SEPARATOR) {
+            // Namespace keyword as operator. Not a declaration.
+            return;
+        }
 
         $end = $phpcsFile->findEndOfStatement($stackPtr);
         for ($i = ($end + 1); $i < ($phpcsFile->numTokens - 1); $i++) {

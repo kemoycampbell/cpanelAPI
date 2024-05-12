@@ -90,7 +90,7 @@ $bar = new stdClass(
     4,
     5,
     6
-   
+
 );
 
 $bar = new stdClass(
@@ -199,7 +199,7 @@ function foo()
     myFunction(
         'string'.
         // comment
-        // comment 
+        // comment
         'string'.
         /* comment
          * comment
@@ -522,3 +522,55 @@ return trim(preg_replace_callback(
                 },
                 $search
             ));
+
+$a = ['a' => function ($b) { return $b; }];
+$a['a']( 1 );
+
+// PHP 8.0 named parameters.
+array_fill_keys(
+    keys: range(
+        1,
+        12,
+    ),
+    value: true,
+);
+
+array_fill_keys(
+    keys: range( 1,
+            12,
+    ), value: true,
+);
+
+// phpcs:set PEAR.Functions.FunctionCallSignature allowMultipleArguments false
+array_fill_keys(
+    keys: range( 1,
+            12,
+    ), value: true,
+);
+// phpcs:set PEAR.Functions.FunctionCallSignature allowMultipleArguments true
+
+?>
+<div>
+    <p/><?php require get_theme_file_path(
+        '/theme_extra/test_block.php'
+    ); ?></p>
+</div>
+<div>
+  <p/><?php require get_theme_file_path(
+      '/theme_extra/test_block.php'
+  ); ?></p>
+</div>
+<?php
+echo 'hi';
+?>
+content
+      <p><?php require get_theme_file_path(
+      '/theme_extra/test_block.php'
+); ?></p>
+
+<!-- If the first token is inline HTML, the token itself should be adjusted, not the token before. -->
+<?php if (check_me() == 'value'): ?>
+  <?php include get_file_path(
+    'my_file.php'
+  ); ?>
+<?php endif; ?>

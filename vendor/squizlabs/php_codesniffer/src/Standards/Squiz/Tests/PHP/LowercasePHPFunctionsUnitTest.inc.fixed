@@ -39,3 +39,12 @@ $callToNamespacedFunction = MyNamespace /* phpcs:ignore Standard */ \STR_REPEAT(
 $callToNamespacedFunction = namespace\STR_REPEAT($a, 2); // Could potentially be false negative.
 
 $filePath = new \File($path);
+
+$count = $object?->Count();
+
+class AttributesShouldBeIgnored
+{
+    #[Putenv('FOO', 'foo')]
+    public function foo(): void
+    {}
+}

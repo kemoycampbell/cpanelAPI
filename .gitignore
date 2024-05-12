@@ -124,7 +124,6 @@ Temporary Items
 .apdisk
 
 # Do not include the environment variables
-.env.bolzen
 .env
 .env*
 
@@ -143,3 +142,6 @@ package.tar
 *.php linguist-vendored=false
 
 .phpunit.result.cache
+
+#do not include my quick and dirty test file
+src/API/CpanelAPI/test.php

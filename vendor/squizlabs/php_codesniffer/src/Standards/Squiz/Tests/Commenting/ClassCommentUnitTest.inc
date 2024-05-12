@@ -123,3 +123,23 @@ class Space_At_end
 {
 
 }//end class
+
+/**
+ * Sample class comment
+ */
+#[Attribute]
+class AllGood
+{
+}
+
+/**
+ * Docblock
+ */
+abstract readonly class AbstractReadonlyWithDocblock {}
+
+/*
+ * Docblock
+ */
+readonly class ReadonlyWrongStyle {}
+
+readonly final class ReadonlyFinalWithoutDocblock {}

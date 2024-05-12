@@ -11,10 +11,13 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer;
+
+use Composer\Autoload\ClassLoader;
+use Exception;
 
 if (class_exists('PHP_CodeSniffer\Autoload', false) === false) {
     class Autoload
@@ -77,7 +80,7 @@ if (class_exists('PHP_CodeSniffer\Autoload', false) === false) {
                     && @file_exists(__DIR__.'/../../autoload.php') === true
                 ) {
                     self::$composerAutoloader = include __DIR__.'/../../autoload.php';
-                    if (self::$composerAutoloader instanceof \Composer\Autoload\ClassLoader) {
+                    if (self::$composerAutoloader instanceof ClassLoader) {
                         self::$composerAutoloader->unregister();
                         self::$composerAutoloader->register();
                     } else {
@@ -160,14 +163,58 @@ if (class_exists('PHP_CodeSniffer\Autoload', false) === false) {
                 return self::$loadedClasses[$path];
             }
 
-            $classes    = get_declared_classes();
-            $interfaces = get_declared_interfaces();
-            $traits     = get_declared_traits();
+            $classesBeforeLoad = [
+                'classes'    => get_declared_classes(),
+                'interfaces' => get_declared_interfaces(),
+                'traits'     => get_declared_traits(),
+            ];
 
             include $path;
 
-            $className  = null;
-            $newClasses = array_reverse(array_diff(get_declared_classes(), $classes));
+            $classesAfterLoad = [
+                'classes'    => get_declared_classes(),
+                'interfaces' => get_declared_interfaces(),
+                'traits'     => get_declared_traits(),
+            ];
+
+            $className = self::determineLoadedClass($classesBeforeLoad, $classesAfterLoad);
+
+            self::$loadedClasses[$path]    = $className;
+            self::$loadedFiles[$className] = $path;
+            return self::$loadedClasses[$path];
+
+        }//end loadFile()
+
+
+        /**
+         * Determine which class was loaded based on the before and after lists of loaded classes.
+         *
+         * @param array $classesBeforeLoad The classes/interfaces/traits before the file was included.
+         * @param array $classesAfterLoad  The classes/interfaces/traits after the file was included.
+         *
+         * @return string The fully qualified name of the class in the loaded file.
+         */
+        public static function determineLoadedClass($classesBeforeLoad, $classesAfterLoad)
+        {
+            $className = null;
+
+            $newClasses = array_diff($classesAfterLoad['classes'], $classesBeforeLoad['classes']);
+            if (PHP_VERSION_ID < 70400) {
+                $newClasses = array_reverse($newClasses);
+            }
+
+            // Since PHP 7.4 get_declared_classes() does not guarantee any order, making
+            // it impossible to use order to determine which is the parent an which is the child.
+            // Let's reduce the list of candidates by removing all the classes known to be "parents".
+            // That way, at the end, only the "main" class just included will remain.
+            $newClasses = array_reduce(
+                $newClasses,
+                function ($remaining, $current) {
+                    return array_diff($remaining, class_parents($current));
+                },
+                $newClasses
+            );
+
             foreach ($newClasses as $name) {
                 if (isset(self::$loadedFiles[$name]) === false) {
                     $className = $name;
@@ -176,7 +223,7 @@ if (class_exists('PHP_CodeSniffer\Autoload', false) === false) {
             }
 
             if ($className === null) {
-                $newClasses = array_reverse(array_diff(get_declared_interfaces(), $interfaces));
+                $newClasses = array_reverse(array_diff($classesAfterLoad['interfaces'], $classesBeforeLoad['interfaces']));
                 foreach ($newClasses as $name) {
                     if (isset(self::$loadedFiles[$name]) === false) {
                         $className = $name;
@@ -186,7 +233,7 @@ if (class_exists('PHP_CodeSniffer\Autoload', false) === false) {
             }
 
             if ($className === null) {
-                $newClasses = array_reverse(array_diff(get_declared_traits(), $traits));
+                $newClasses = array_reverse(array_diff($classesAfterLoad['traits'], $classesBeforeLoad['traits']));
                 foreach ($newClasses as $name) {
                     if (isset(self::$loadedFiles[$name]) === false) {
                         $className = $name;
@@ -195,11 +242,9 @@ if (class_exists('PHP_CodeSniffer\Autoload', false) === false) {
                 }
             }
 
-            self::$loadedClasses[$path]    = $className;
-            self::$loadedFiles[$className] = $path;
-            return self::$loadedClasses[$path];
+            return $className;
 
-        }//end loadFile()
+        }//end determineLoadedClass()
 
 
         /**
@@ -240,7 +285,7 @@ if (class_exists('PHP_CodeSniffer\Autoload', false) === false) {
         public static function getLoadedClassName($path)
         {
             if (isset(self::$loadedClasses[$path]) === false) {
-                throw new \Exception("Cannot get class name for $path; file has not been included");
+                throw new Exception("Cannot get class name for $path; file has not been included");
             }
 
             return self::$loadedClasses[$path];
@@ -259,7 +304,7 @@ if (class_exists('PHP_CodeSniffer\Autoload', false) === false) {
         public static function getLoadedFileName($class)
         {
             if (isset(self::$loadedFiles[$class]) === false) {
-                throw new \Exception("Cannot get file name for $class; class has not been included");
+                throw new Exception("Cannot get file name for $class; class has not been included");
             }
 
             return self::$loadedFiles[$class];

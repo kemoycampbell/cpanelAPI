@@ -54,7 +54,7 @@ class ClassName7
 
 class ClassName8
 {
-    use A ,  B,
+    use   A ,  B,
     C
     {
 
@@ -168,5 +168,54 @@ class MyExample
 
     // comment here
     use Trait3;
+
+}
+
+class Foo implements Bar
+{
+    /*
+     * Comment here;
+     */
+    use Baz;
+}
+
+class Foo implements Bar
+{
+    // Comment here;
+    use Baz;
+}
+
+class Foo implements Bar
+{
+    /**
+     * Comment here;
+     */
+    /**
+     * Another Comment here;
+     */
+    use Baz;
+}
+
+class Foo implements Bar
+{
+    /**
+     * Comment here;
+     */
+    public $foo;
+    /**
+     * Comment here;
+     */
+    use Baz;
+}
+
+enum SomeEnum1
+{
+    use FirstTrait;
+}
+
+enum SomeEnum2
+{
+
+    use   FirstTrait;
 
 }

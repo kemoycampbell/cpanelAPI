@@ -7,7 +7,7 @@
  *
  * @author    Juliette Reinders Folmer <phpcs_nospam@adviesenzo.nl>
  * @copyright 2017 Juliette Reinders Folmer. All rights reserved.
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\WhiteSpace;
@@ -45,7 +45,7 @@ class ArbitraryParenthesesSpacingSniff implements Sniff
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
@@ -58,7 +58,6 @@ class ArbitraryParenthesesSpacingSniff implements Sniff
         $this->ignoreTokens[T_CLOSE_SHORT_ARRAY]    = T_CLOSE_SHORT_ARRAY;
 
         $this->ignoreTokens[T_USE]        = T_USE;
-        $this->ignoreTokens[T_DECLARE]    = T_DECLARE;
         $this->ignoreTokens[T_THROW]      = T_THROW;
         $this->ignoreTokens[T_YIELD]      = T_YIELD;
         $this->ignoreTokens[T_YIELD_FROM] = T_YIELD_FROM;
@@ -79,7 +78,7 @@ class ArbitraryParenthesesSpacingSniff implements Sniff
      * @param int                         $stackPtr  The position of the current token in
      *                                               the stack passed in $tokens.
      *
-     * @return void
+     * @return void|int
      */
     public function process(File $phpcsFile, $stackPtr)
     {
@@ -102,7 +101,11 @@ class ArbitraryParenthesesSpacingSniff implements Sniff
         }
 
         $preOpener = $phpcsFile->findPrevious(Tokens::$emptyTokens, ($opener - 1), null, true);
-        if ($preOpener !== false && isset($this->ignoreTokens[$tokens[$preOpener]['code']]) === true) {
+        if ($preOpener !== false
+            && isset($this->ignoreTokens[$tokens[$preOpener]['code']]) === true
+            && ($tokens[$preOpener]['code'] !== T_CLOSE_CURLY_BRACKET
+            || isset($tokens[$preOpener]['scope_condition']) === false )
+        ) {
             // Function or language construct call.
             return;
         }

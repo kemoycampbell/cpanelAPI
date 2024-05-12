@@ -370,12 +370,12 @@ $a = array
 // comment
 (
       'a',
-      'b', 
+      'b',
      );
 
 $a = array /* comment */ (
       'a',
-      'b', 
+      'b',
      );
 
 $x = array('a' => false);
@@ -422,6 +422,20 @@ HERE
 ,
        );
 
+array(
+ lorem(
+     1
+ ),
+ 2,
+);
+
+array(
+ 1 => lorem(
+     1
+ ),
+ 2 => 2,
+);
+
 $foo = array(
         'тип'  => 'авто',
         'цвет' => 'синий',
@@ -452,7 +466,123 @@ $array = array(
           3 => '3',
          );
 
+$foo = array(
+        $this->fn => 'value',
+        $foo->fn  => 'value',
+       );
+
+array(
+ $a,
+ $b,
+ $c,
+);
+
+array(
+ 'a' => $a,
+ 'b' => $b,
+ 'c' => $c,
+);
+
+array(
+ static function() {
+     return null;
+ },
+ (array) array(),
+ (bool) array(),
+ (double) array(),
+ (int) array(),
+ (object) array(),
+ (string) array(),
+ (unset) array(),
+);
+
+array(
+ 'foo',
+ 'bar'
+ // This is a non-fixable error.
+ ,
+);
+
+yield array(
+       static fn () : string => '',
+      );
+
+yield array(
+       static fn () : string => '',
+      );
+
+$foo = array(
+        'foo' => match ($anything) {
+            'foo' => 'bar',
+            default => null,
+        },
+       );
+
 // Intentional syntax error.
 $a = array(
       'a' =>
+     );
+
+// Safeguard correct errors for key/no key when PHP 7.4+ array unpacking is encountered.
+$x = array(
+    ...$a,
+      'foo' => 'bar',
+     );
+
+$x = array(
+      'foo' => 'bar',
+    ...$a,
+     );
+
+$x = array(
+      'foo' => 'bar',
+    ...$a,
+      'baz' => 'bar',
+     );
+
+$x = array(
+    ...$a,
+    'foo' => 'bar', // OK.
+    'bar', // NoKeySpecified Error (based on second entry).
+     );
+
+$x = array(
+    ...$a,
+    'bar', // OK.
+    'foo' => 'bar', // KeySpecified Error (based on second entry).
+     );
+
+$x = array(
+    'foo' => 'bar',
+    ...$a,
+    'baz' => 'bar',
+    'bar', // NoKeySpecified Error (based on first entry).
+     );
+
+$x = array(
+    'bar',
+    ...$a,
+    'bar',
+    'baz' => 'bar', // KeySpecified (based on first entry).
+     );
+
+ $x =
+ array(
+  'a',
+  'b',
+ );
+
+$x = array(
+      1,
+      static fn (float $item): float => match ($item) {
+        2.0 => 3.0,
+        default => $item
+    },
+     );
+
+$x = array(
+      1,
+      static::helloWorld(),
+      $class instanceof static,
+      2,
      );

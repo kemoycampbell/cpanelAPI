@@ -4,7 +4,7 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
  */
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\Files;
@@ -37,11 +37,14 @@ class LineEndingsSniff implements Sniff
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
-        return [T_OPEN_TAG];
+        return [
+            T_OPEN_TAG,
+            T_OPEN_TAG_WITH_ECHO,
+        ];
 
     }//end register()
 
@@ -65,7 +68,7 @@ class LineEndingsSniff implements Sniff
 
         if ($found === $this->eolChar) {
             // Ignore the rest of the file.
-            return ($phpcsFile->numTokens + 1);
+            return $phpcsFile->numTokens;
         }
 
         // Check for single line files without an EOL. This is a very special
@@ -76,7 +79,7 @@ class LineEndingsSniff implements Sniff
             if ($tokens[$lastToken]['line'] === 1
                 && $tokens[$lastToken]['content'] !== "\n"
             ) {
-                return;
+                return $phpcsFile->numTokens;
             }
         }
 
@@ -110,30 +113,34 @@ class LineEndingsSniff implements Sniff
             }
 
             for ($i = 0; $i < $phpcsFile->numTokens; $i++) {
-                if (isset($tokens[($i + 1)]) === false
-                    || $tokens[($i + 1)]['line'] > $tokens[$i]['line']
+                if (isset($tokens[($i + 1)]) === true
+                    && $tokens[($i + 1)]['line'] <= $tokens[$i]['line']
                 ) {
-                    // Token is the last on a line.
-                    if (isset($tokens[$i]['orig_content']) === true) {
-                        $tokenContent = $tokens[$i]['orig_content'];
-                    } else {
-                        $tokenContent = $tokens[$i]['content'];
-                    }
+                    continue;
+                }
 
-                    if ($tokenContent === '') {
-                        // Special case for JS/CSS close tag.
-                        continue;
-                    }
+                // Token is the last on a line.
+                if (isset($tokens[$i]['orig_content']) === true) {
+                    $tokenContent = $tokens[$i]['orig_content'];
+                } else {
+                    $tokenContent = $tokens[$i]['content'];
+                }
 
-                    $newContent  = rtrim($tokenContent, "\r\n");
-                    $newContent .= $eolChar;
+                if ($tokenContent === '') {
+                    // Special case for JS/CSS close tag.
+                    continue;
+                }
+
+                $newContent  = rtrim($tokenContent, "\r\n");
+                $newContent .= $eolChar;
+                if ($tokenContent !== $newContent) {
                     $phpcsFile->fixer->replaceToken($i, $newContent);
                 }
             }//end for
         }//end if
 
         // Ignore the rest of the file.
-        return ($phpcsFile->numTokens + 1);
+        return $phpcsFile->numTokens;
 
     }//end process()
 

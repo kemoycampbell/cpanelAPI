@@ -4,7 +4,9 @@
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
  * @copyright 2006-2015 Squiz Pty Ltd (ABN 77 084 670 600)
- * @license   https://github.com/squizlabs/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/master/licence.txt BSD Licence
+ *
+ * @deprecated 3.9.0
  */
 
 namespace PHP_CodeSniffer\Standards\MySource\Sniffs\Objects;
@@ -27,7 +29,7 @@ class CreateWidgetTypeCallbackSniff implements Sniff
     /**
      * Returns an array of tokens this test wants to listen for.
      *
-     * @return array
+     * @return array<int|string>
      */
     public function register()
     {
@@ -131,7 +133,7 @@ class CreateWidgetTypeCallbackSniff implements Sniff
                     continue;
                 }
 
-                // Just make sure those brackets dont belong to anyone,
+                // Just make sure those brackets don't belong to anyone,
                 // like an IF or FOR statement.
                 foreach ($tokens[$i]['nested_parenthesis'] as $bracket) {
                     if (isset($tokens[$bracket]['parenthesis_owner']) === true) {
