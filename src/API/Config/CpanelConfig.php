@@ -148,16 +148,8 @@ class CpanelConfig implements ConfigInterface
 
     public function getOTPToken():string
     {
-        echo $this->twoFactorAuthenticationSecret;
-         echo "<br/>";
         $otp = new OTP($this->twoFactorAuthenticationSecret);
-
-        $secretToken = $otp->generateOTP();
-        echo $secretToken;
-        echo "<br/>";
-
-
-        return $secretToken;
+        return $otp->generateOTP();
     }
 
     public function useTwoFactorAuthentication(): bool
