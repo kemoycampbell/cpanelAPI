@@ -145,3 +145,5 @@ package.tar
 
 #do not include my quick and dirty test file
 src/API/CpanelAPI/test.php
+
+.php-cs-fixer.cache
