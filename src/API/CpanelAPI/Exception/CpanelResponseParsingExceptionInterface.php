@@ -2,7 +2,7 @@
 
 namespace KemoyCampbell\CpanelAPI\API\CpanelAPI\Exception;
 
-interface CpanelResponseParsingExceptionInterface extends \Throwable
+interface CpanelResponseParsingExceptionInterface extends CpanelExceptionInterface
 {
 
 }

@@ -2,7 +2,9 @@
 
 namespace KemoyCampbell\CpanelAPI\API\Config\Exception;
 
-interface ConfigExceptionInterface extends \Throwable
+use KemoyCampbell\CpanelAPI\API\CpanelAPI\Exception\CpanelExceptionInterface;
+
+interface ConfigExceptionInterface extends CpanelExceptionInterface
 {
 
 }

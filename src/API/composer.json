@@ -1,5 +1,6 @@
 {
   "name": "kemoycampbell/cpanel-api-core",
+  "version": "2.0.0-alpha",
   "description":  "Streamlined cPanel API Integration:\nThis library simplifies interacting with cPanel APIs.\nIt offers essential tools for authentication, making API requests, and parsing responses.\nIt serves as a foundation for building robust cPanel integrations and applications.",
   "minimum-stability": "stable",
   "license": "MIT",
