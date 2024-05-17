@@ -30,24 +30,39 @@ class CpanelAPI implements CPanelAPIInterface
 
     public function request(string $module, string $function, array $parameters = []): CpanelResponseInterface
     {
+        // Construct the query string from parameters
         $queryString = http_build_query($parameters);
+
+        // Build the endpoint string based on the provided module, function, and query string
         $endpoint = "{$module}/{$function}?{$queryString}";
 
+        // Check if we are using WHM (module is 'json-api'), WHM doesn't need 'execute/' in the endpoint
+        if ($module !== 'json-api') {
+            // For UAPI, prepend 'execute/' to the endpoint
+            $endpoint = "execute/{$endpoint}";
+        }
+
+        // Make the HTTP request to the constructed endpoint
         $response = $this->client->request('GET', $endpoint);
 
-        echo $response->getContent();
 
 
+        // Handle any transport exceptions (e.g., network errors)
         $this->handleTransportException($response);
+
+        // Handle invalid credentials (e.g., access forbidden)
         $this->handleBadCredential($response);
 
-
-
+        // Create a CpanelResponse object from the HTTP response
         $this->lastResponse = new CpanelResponse($response);
 
+        // Handle errors related to bad modules (e.g., module not found)
         $this->handleBadModule();
+
+        // Handle errors related to bad functions (e.g., function not found)
         $this->handleBadFunction();
 
+        // Return the last response received
         return $this->lastResponse;
     }
 
@@ -117,12 +132,12 @@ class CpanelAPI implements CPanelAPIInterface
      */
     public function configureClient(ConfigInterface $cpanelConfig): HttpClientInterface
     {
-        $baseUrl = "https://{$cpanelConfig->getServerDomain()}:{$cpanelConfig->getPort()}/execute/";
+        $baseUrl = "https://{$cpanelConfig->getServerDomain()}:{$cpanelConfig->getPort()}/";
         $authorization = $this->createAuthorizationHeader($cpanelConfig);
 
         $headers = array("Authorization" => $authorization);
         if ($cpanelConfig->useTwoFactorAuthentication()) {
-            $headers["X-CPANEL-OTP"] = $cpanelConfig->getOTPToken($cpanelConfig->getToken());
+            $headers["X-CPANEL-OTP"] = $cpanelConfig->getOTPToken();
         }
 
         echo $authorization;
