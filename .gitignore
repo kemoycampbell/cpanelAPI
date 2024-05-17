@@ -148,7 +148,7 @@ src/API/CpanelAPI/test.php
 
 .php-cs-fixer.cache
 
-vendor/
+/vendor/
 composer.lock
 phpunit.xml
 .php-cs-fixer.cache
