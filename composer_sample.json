@@ -1,0 +1,31 @@
+{
+  "name": "kemoycampbell/<name>",
+  "type": "library",
+  "description": "",
+  "keywords": [
+    "cpanel",
+    "cpanelapi",
+    "php cpanel api",
+    "cpanel library",
+    "cpanel sdk",
+    "control panel automation",
+    "cpanel integration"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Kemoy Campbell",
+      "email": "kemoycampbell45@gmail.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "KemoyCampbell\\CpanelAPI\\Components\\": "src/Components"
+    }
+  },
+  "minimum-stability": "dev"
+}
