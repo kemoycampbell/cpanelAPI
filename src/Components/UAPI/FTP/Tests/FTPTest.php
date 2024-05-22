@@ -53,4 +53,10 @@ class FTPTest extends TestCase
 
         $this->assertTrue($status);
     }
+
+    public function testUpdateQuota()
+    {
+        $status = $this->ftp->updateQuota($this->user, $unlimited = false, $quota = 100);
+        $this->assertTrue($status);
+    }
 }

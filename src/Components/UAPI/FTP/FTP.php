@@ -87,7 +87,6 @@ class FTP implements FTPInterface
         }
 
         return true;
-        // TODO: Implement delete() method.
     }
 
     /**
@@ -105,12 +104,13 @@ class FTP implements FTPInterface
             $parameters['domain'] = $domain;
         }
 
-        $response = $this->api->request($this->module,$function,$parameters);
+        $response = $this->api->request($this->module, $function, $parameters);
         //we do not want to throw an exception if the error is about user doesnt exsit. we want to return false instead
-        if($this->api->hasErrors()) {
+        if ($this->api->hasErrors()) {
             //if doesnt exist is part of the error from the cpanel then we return false as the user doesnt exist
-            if(strpos($this->api->getErrors(), " does not exist. ")!==false)
+            if (strpos($this->api->getErrors(), " does not exist. ")!==false) {
                 return false;
+            }
         }
 
         //we still have error and it is not related to the user doesnt exist, alert the developer
@@ -120,8 +120,6 @@ class FTP implements FTPInterface
 
         //otherwise the user exist.
         return $response->getResponseAsArray()["status"] == 1;
-
-
     }
 
     /**
@@ -141,7 +139,34 @@ class FTP implements FTPInterface
      */
     public function updateQuota(string $user, bool $unlimited = false, int $quota = 0, string $domain = ""): bool
     {
-        // TODO: Implement updateQuota() method.
+        $function = 'set_quota';
+        $parameters = array(
+            "user"=>$user
+        );
+        //user which to disable the quota and make it unlimited
+        if ($unlimited) {
+            $parameters['kill'] = 1;
+        }
+
+        //user wish to assign a specific quota
+        if ($quota > 0) {
+            $parameters['quota'] = $quota;
+        }
+
+        //user wish to apply this to a specific domain
+        if ($domain) {
+            $parameters['domain'] = $domain;
+        }
+
+        //make the request
+        $this->api->request($this->module, $function, $parameters);
+
+        //throw an exception if any error occurred
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return true;
     }
 
     /**
