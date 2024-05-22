@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 class FTPTest extends TestCase
 {
     private FTPInterface $ftp;
+    private string $user;
 
     public function __construct(string $name)
     {
@@ -24,16 +25,16 @@ class FTPTest extends TestCase
         );
 
         $api = new CpanelAPI($config);
-
+        $this->user = "testFTPUser";
         $this->ftp = new FTP($api);
     }
 
     public function testAddFTP()
     {
-        $user = "testFTPUser";
+
         $password = "NorDakota1";
         $status = $this->ftp->createFTPAccount(
-            $user,
+            $this->user,
             $disallowDot = true,
             $domain = '',
             $homedir = '',
@@ -41,6 +42,14 @@ class FTPTest extends TestCase
             $passwordHash = '',
             $quota = 0
         );
+
+        $this->assertTrue($status);
+    }
+
+    public function testDeleteFTP()
+    {
+        //we want to destroy the home directory too if it was created
+        $status = $this->ftp->delete($this->user, $destroy = true);
 
         $this->assertTrue($status);
     }

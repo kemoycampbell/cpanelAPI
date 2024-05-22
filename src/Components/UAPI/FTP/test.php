@@ -27,20 +27,38 @@ $config = new \KemoyCampbell\CpanelAPI\API\Config\CpanelConfig(
     $serverDomain,
     $username,
     $token,
-    \KemoyCampbell\CpanelAPI\API\Config\AuthType::Password
+    \KemoyCampbell\CpanelAPI\API\Config\AuthType::Token
 );
 $api = new \KemoyCampbell\CpanelAPI\API\CpanelAPI\CpanelAPI($config);
 
-$password="Your password here";
-$user = "amir";
+$password="LearningStudent";
+$user = "amir3";
 $ftp = new \KemoyCampbell\CpanelAPI\Components\UAPI\FTP\FTP($api);
 
-echo $ftp->createFTPAccount(
-    $user,
-    $disallowDot = true,
-    $domain = '',
-    $homedir = '',
-    $password,
-    $passwordHash = '',
-    $quota = 0
-);
+//echo "Creating user ".$user;
+//$created = $ftp->createFTPAccount(
+//    $user,
+//    $disallowDot = true,
+//    $domain = '',
+//    $homedir = '',
+//    $password,
+//    $passwordHash = '',
+//    $quota = 0
+//);
+
+//<br/> is just html for break
+//if($created) {
+//    echo "<br/> Successfully created! <br/>";
+//}
+
+//echo "Deleting ".$user;
+//$deleted = $ftp->delete($user);
+//
+//
+//if($deleted) {
+//    echo "<br/> User deleted!";
+//}
+
+$ftp->exist("random");
+
+//test in web

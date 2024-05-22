@@ -55,7 +55,7 @@ class FTP implements FTPInterface
             $parameters['pass_hash'] = $passwordHash;
         }
 
-        print_r($parameters);
+        //print_r($parameters);
 
         $response = $this->api->request($this->module, $function, $parameters);
 
@@ -95,7 +95,33 @@ class FTP implements FTPInterface
      */
     public function exist(string $user, string $domain = ""): bool
     {
-        // TODO: Implement exist() method.
+        //assign the right function
+        $function = 'ftp_exists';
+        //create the parameters. user is required
+        $parameters = array("user" => $user);
+
+        //we will add domain as parameter if the user supplies it(not empty)
+        if (!empty($domain)) {
+            $parameters['domain'] = $domain;
+        }
+
+        $response = $this->api->request($this->module,$function,$parameters);
+        //we do not want to throw an exception if the error is about user doesnt exsit. we want to return false instead
+        if($this->api->hasErrors()) {
+            //if doesnt exist is part of the error from the cpanel then we return false as the user doesnt exist
+            if(strpos($this->api->getErrors(), " does not exist. ")!==false)
+                return false;
+        }
+
+        //we still have error and it is not related to the user doesnt exist, alert the developer
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        //otherwise the user exist.
+        return $response->getResponseAsArray()["status"] == 1;
+
+
     }
 
     /**
@@ -103,7 +129,11 @@ class FTP implements FTPInterface
      */
     public function getQuota(string $user, string $domain = ""): int
     {
-        // TODO: Implement getQuota() method.
+       //get the total quota for a specific user.
+
+        //if there are any error, it should be thrown
+
+        //the domain is not required unless the user supplied it
     }
 
     /**
@@ -119,7 +149,7 @@ class FTP implements FTPInterface
      */
     public function getWelcomeMessage(): string
     {
-        // TODO: Implement getWelcomeMessage() method.
+       // returns the welcome message from the ftp
     }
 
     /**
