@@ -2,6 +2,7 @@
 
 namespace KemoyCampbell\CpanelAPI\API\tests\Config;
 
+use KemoyCampbell\CpanelAPI\API\Config\AuthType;
 use KemoyCampbell\CpanelAPI\API\Config\ConfigInterface;
 use KemoyCampbell\CpanelAPI\API\Config\CpanelConfig;
 use PHPUnit\Framework\TestCase;
@@ -45,27 +46,35 @@ class ConfigTest extends TestCase
         $this->assertEquals($this->token, $this->config->getToken());
     }
 
+    public function testUseTwoFactorAuthentication()
+    {
+        $this->config = new CpanelConfig($this->serverDomain, $this->username, $this->token, AuthType::Password);
+        $this->config->setTwoFactorAuthenticationSecret('secret');
+        $this->assertTrue($this->config->useTwoFactorAuthentication());
+    }
+
     public function testCpanelPortException()
     {
         $this->expectException(\KemoyCampbell\CpanelAPI\API\Config\Exception\ConfigPortException::class);
-        $this->config = new CpanelConfig($this->serverDomain, $this->username, $this->token, 0);
+        $this->config->setPort(0);
     }
 
     public function testCpanelServerDomainException()
     {
         $this->expectException(\KemoyCampbell\CpanelAPI\API\Config\Exception\ConfigServerDomainException::class);
-        $this->config = new CpanelConfig('', $this->username, $this->token, $this->port);
+        $this->config = new CpanelConfig('', $this->username, $this->token);
     }
 
     public function testCpanelUsernameException()
     {
         $this->expectException(\KemoyCampbell\CpanelAPI\API\Config\Exception\ConfigUsernameException::class);
-        $this->config = new CpanelConfig($this->serverDomain, '', $this->token, $this->port);
+        $this->config = new CpanelConfig($this->serverDomain, '', $this->token);
     }
 
     public function testCpanelTokenException()
     {
         $this->expectException(\KemoyCampbell\CpanelAPI\API\Config\Exception\ConfigTokenException::class);
-        $this->config = new CpanelConfig($this->serverDomain, $this->username, '', $this->port);
+        $this->config = new CpanelConfig($this->serverDomain, $this->username, '');
     }
+
 }

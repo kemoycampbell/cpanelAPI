@@ -32,5 +32,9 @@ interface CPanelAPIInterface
      */
     public function request(string $module, string $function, array $parameters = []):CpanelResponseInterface;
 
+    public function hasErrors():bool;
+
+    public function getErrors():?string;
+
 }
 

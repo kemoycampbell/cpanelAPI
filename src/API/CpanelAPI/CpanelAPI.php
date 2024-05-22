@@ -112,19 +112,25 @@ class CpanelAPI implements CPanelAPIInterface
         }
     }
 
-    public function getErrors(): array
+    public function getErrors():?string
     {
         if (is_null($this->lastResponse)) {
-            return [];
+            return null;
         }
 
         $responseArray = $this->lastResponse->getResponseAsArray();
-        return $responseArray['errors'] ?? [];
+        $errors = $responseArray['errors'] ?? [];
+
+        if (count($errors) === 0) {
+            return null;
+        }
+
+        return implode(",", $errors);
     }
 
     public function hasErrors(): bool
     {
-        return count($this->getErrors()) > 0;
+        return $this->getErrors() !== null;
     }
 
     /**

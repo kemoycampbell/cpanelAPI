@@ -34,7 +34,7 @@ class CpanelConfig implements ConfigInterface
         $this->twoFactorAuthenticationSecret = null;
 
 
-        $this->validateConfiguration();
+        $this->validateConstructParameters();
     }
 
     /**
@@ -115,11 +115,11 @@ class CpanelConfig implements ConfigInterface
      * Validates the port.
      * Throws a ConfigPortException if the port is not supported.
      */
-    private function validatePort(): void
+    private function validatePort(int $port): void
     {
-        if (!in_array($this->port, $this->getSupportedCpanelPorts())) {
+        if (!in_array($port, $this->getSupportedCpanelPorts())) {
             $supportedPorts = implode(',', $this->getSupportedCpanelPorts());
-            throw new ConfigPortException("{$this->port} is not supported. 
+            throw new ConfigPortException("{$port} is not supported. 
             The supported ports are {$supportedPorts}");
         }
     }
@@ -130,12 +130,11 @@ class CpanelConfig implements ConfigInterface
      * Calls individual validation methods for each configuration parameter.
      * @throws ConfigServerDomainException, ConfigUsernameException, ConfigTokenException, ConfigPortException
      */
-    private function validateConfiguration(): void
+    private function validateConstructParameters(): void
     {
         $this->validateServerDomain();
         $this->validateUsername();
         $this->validateToken();
-        $this->validatePort();
     }
 
     /**
@@ -159,6 +158,7 @@ class CpanelConfig implements ConfigInterface
 
     public function setPort(int $port): void
     {
+        $this->validatePort($port);
         $this->port = $port;
     }
 
