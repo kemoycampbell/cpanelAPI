@@ -193,12 +193,17 @@ class FTP implements FTPInterface
         return true;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getAccounts(array $includeAccountTypes = [], array $excludeAccountTypes = []): array
-    {
+    private function getFTPAccountData(
+        bool $includeDiskUsage = false,
+        array $includeAccountTypes = [],
+        array $excludeAccountTypes = []
+    ): array {
+
         $function = "list_ftp";
+        if ($includeDiskUsage) {
+            $function = "list_ftp_with_disk";
+        }
+
         $parameters = array();
         if (count($includeAccountTypes) > 0) {
             $parameters['include_acct_types'] = $includeAccountTypes;
@@ -209,6 +214,7 @@ class FTP implements FTPInterface
         }
 
         $response = $this->api->request($this->module, $function, $parameters);
+
         if ($this->api->hasErrors()) {
             throw new CpanelFTPException($this->api->getErrors());
         }
@@ -218,10 +224,21 @@ class FTP implements FTPInterface
 
     /**
      * @inheritDoc
+     * @throws CpanelFTPException
+     */
+    public function getAccounts(array $includeAccountTypes = [], array $excludeAccountTypes = []): array
+    {
+        return $this->getFTPAccountData($includeDiskUsage = false);
+    }
+
+
+    /**
+     * @inheritDoc
+     * @throws CpanelFTPException
      */
     public function getAccountsDiskUsage(array $includeAccountTypes = [], array $excludeAccountTypes = []): array
     {
-        // TODO: Implement getAccountsDiskUsage() method.
+        return $this->getFTPAccountData($includeDiskUsage = true);
     }
 
     /**

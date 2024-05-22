@@ -64,12 +64,17 @@ class FTPTest extends TestCase
     {
         $status = $this->ftp->updateWelcomeMessage("Welcome to the FTP server - Cpanel API Modulation");
         $this->assertTrue($status);
-
     }
 
     public function testGetAccounts()
     {
         $accounts = $this->ftp->getAccounts();
         $this->assertIsArray($accounts) && $this->assertTrue(count($accounts) > 0);
+    }
+
+    public function testGetAccountsDiskUsage()
+    {
+        $accounts = $this->ftp->getAccountsDiskUsage();
+        $this->assertArrayHasKey('_diskused', $accounts[0]);
     }
 }
