@@ -77,4 +77,17 @@ class FTPTest extends TestCase
         $accounts = $this->ftp->getAccountsDiskUsage();
         $this->assertArrayHasKey('_diskused', $accounts[0]);
     }
+
+    public function testUpdatePassword()
+    {
+        $password = "NorDakota2";
+        $status = $this->ftp->updatePassword($this->user, $password);
+        $this->assertTrue($status);
+    }
+
+    public function testUpdateHomeDir()
+    {
+        $status = $this->ftp->updateHomeDirectory($this->user, "/home/testFTPUser2");
+        $this->assertTrue($status);
+    }
 }

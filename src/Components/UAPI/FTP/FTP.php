@@ -246,7 +246,23 @@ class FTP implements FTPInterface
      */
     public function updatePassword(string $user, string $password, string $domain = ""): bool
     {
-        // TODO: Implement updatePassword() method.
+        $function = 'passwd';
+        $parameters = array(
+            "user" => $user,
+            "pass" => $password
+        );
+
+        if (!empty($domain)) {
+            $parameters['domain'] = $domain;
+        }
+
+        $this->api->request($this->module, $function, $parameters);
+
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return true;
     }
 
     /**
@@ -254,6 +270,21 @@ class FTP implements FTPInterface
      */
     public function updateHomeDirectory(string $user, string $homeDirectory, string $domain = ""): bool
     {
-        // TODO: Implement updateHomeDirectory() method.
+        $function = 'set_homedir';
+        $parameters = array(
+           "user" => $user,
+           "homedir" => $homeDirectory
+        );
+
+        if (!empty($domain)) {
+            $parameters['domain'] = $domain;
+        }
+
+        $this->api->request($this->module, $function, $parameters);
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return true;
     }
 }
