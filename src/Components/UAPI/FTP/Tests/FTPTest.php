@@ -59,4 +59,17 @@ class FTPTest extends TestCase
         $status = $this->ftp->updateQuota($this->user, $unlimited = false, $quota = 100);
         $this->assertTrue($status);
     }
+
+    public function testUpdateWelcomeMessage()
+    {
+        $status = $this->ftp->updateWelcomeMessage("Welcome to the FTP server - Cpanel API Modulation");
+        $this->assertTrue($status);
+
+    }
+
+    public function testGetAccounts()
+    {
+        $accounts = $this->ftp->getAccounts();
+        $this->assertIsArray($accounts) && $this->assertTrue(count($accounts) > 0);
+    }
 }

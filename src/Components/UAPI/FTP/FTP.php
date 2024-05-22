@@ -182,7 +182,15 @@ class FTP implements FTPInterface
      */
     public function updateWelcomeMessage(string $message): bool
     {
-        // TODO: Implement updateWelcomeMessage() method.
+        $parameter = array("message"=> $message);
+        $function = "set_welcome_message";
+        $this->api->request($this->module, $function, $parameter);
+
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return true;
     }
 
     /**
@@ -190,7 +198,22 @@ class FTP implements FTPInterface
      */
     public function getAccounts(array $includeAccountTypes = [], array $excludeAccountTypes = []): array
     {
-        // TODO: Implement getAccounts() method.
+        $function = "list_ftp";
+        $parameters = array();
+        if (count($includeAccountTypes) > 0) {
+            $parameters['include_acct_types'] = $includeAccountTypes;
+        }
+
+        if (count($excludeAccountTypes) > 0) {
+            $parameters['skip_acct_types'] = $excludeAccountTypes;
+        }
+
+        $response = $this->api->request($this->module, $function, $parameters);
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return $response->getResponseAsArray()["data"];
     }
 
     /**

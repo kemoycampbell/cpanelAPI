@@ -59,6 +59,8 @@ $ftp = new \KemoyCampbell\CpanelAPI\Components\UAPI\FTP\FTP($api);
 //    echo "<br/> User deleted!";
 //}
 
-$ftp->exist("random");
+//$ftp->exist("random");
+
+$ftp->getAccounts();
 
 //test in web
