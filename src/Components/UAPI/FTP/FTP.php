@@ -108,7 +108,7 @@ class FTP implements FTPInterface
         //we do not want to throw an exception if the error is about user doesnt exsit. we want to return false instead
         if ($this->api->hasErrors()) {
             //if doesnt exist is part of the error from the cpanel then we return false as the user doesnt exist
-            if (strpos($this->api->getErrors(), " does not exist. ")!==false) {
+            if (strpos($this->api->getErrors(), "does not exist")!==false) {
                 return false;
             }
         }
