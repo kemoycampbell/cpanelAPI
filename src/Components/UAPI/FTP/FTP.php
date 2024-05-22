@@ -48,12 +48,14 @@ class FTP implements FTPInterface
         }
 
         if ($password !== '') {
-            $parameters['password'] = $password;
+            $parameters['pass'] = $password;
         }
 
         if ($passwordHash !== '') {
-            $parameters['password_hash'] = $passwordHash;
+            $parameters['pass_hash'] = $passwordHash;
         }
+
+        print_r($parameters);
 
         $response = $this->api->request($this->module, $function, $parameters);
 
@@ -69,6 +71,22 @@ class FTP implements FTPInterface
      */
     public function delete(string $user, bool $destroy = false, string $domain = ''): bool
     {
+        $function = 'delete_ftp';
+        $parameters = array(
+            "user" => $user,
+            "destroy" => $destroy ? 1:0,
+        );
+
+        if (!empty($domain)) {
+            $parameters['domain'] = $domain;
+        }
+
+        $response = $this->api->request($this->module, $function, $parameters);
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return true;
         // TODO: Implement delete() method.
     }
 

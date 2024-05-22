@@ -22,12 +22,11 @@
     }
   ],
   "require": {
-    "php": ">=8.2",
-    "../../../../vendor/kemoycampbell/cpanel-api-core": "2.0.0-alpha"
+    "php": ">=8.2"
   },
   "autoload": {
     "psr-4": {
-      "KemoyCampbell\\CpanelAPI\\Components\\FTP\\": ""
+      "KemoyCampbell\\CpanelAPI\\Components\\UAPI\\FTP\\": ""
     }
   }
 }

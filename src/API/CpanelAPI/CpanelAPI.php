@@ -146,7 +146,6 @@ class CpanelAPI implements CPanelAPIInterface
             $headers["X-CPANEL-OTP"] = $cpanelConfig->getOTPToken();
         }
 
-        echo $authorization;
 
         $options = [
             'base_uri' => $baseUrl,
