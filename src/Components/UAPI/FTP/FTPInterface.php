@@ -136,4 +136,97 @@ interface FTPInterface
      */
     public function updateHomeDirectory(string $user, string $homeDirectory, string $domain = ""): bool;
 
+    /**
+     * This function returns whether anonymous FTP is allowed.
+     * @return bool True if anonymous FTP is allowed, false otherwise.
+     * @doc - https://api.docs.cpanel.net/openapi/cpanel/operation/allows_anonymous_ftp/
+     */
+    public function isAnonymousFTPAllowed():bool;
+
+    /**
+     * This function returns whether anonymous FTP transfer is allowed.
+     * @return bool True if anonymous FTP transfer is allowed, false otherwise.
+     * @doc - https://api.docs.cpanel.net/openapi/cpanel/operation/allows_anonymous_ftp_incoming/
+     */
+    public function isAnonymousFTPTransferAllowed():bool;
+
+    public function getFTPServerInformation():array;
+
+    /**
+     * This function returns the FTP server's port.
+     * @return int The FTP server's port.
+     * @doc - https://api.docs.cpanel.net/openapi/cpanel/operation/get_port/
+     */
+    public function getFTPPort():int;
+
+    /**
+     * This function kills FTP sessions.
+    * @param string $user - The user whose session to kill. To kill all sessions, use the value all.
+    * @return bool - true if the session is killed. CpanelFTPException if an error occurs.
+     */
+    public function killFTPSession(string $user = "all"):bool;
+
+    /**
+     * This function returns active FTP sessions.
+     * @return array - An array containing active FTP sessions.
+     * @doc - https://api.docs.cpanel.net/openapi/cpanel/operation/list_sessions/
+     */
+    public function getActiveFTPSessions():array;
+
+    /**
+     * This function checks whether the server uses ProFTPD or Pure-FTPd.
+     * @return string - The server type. Either proftpd or pureftpd.
+     * @doc - https://api.docs.cpanel.net/openapi/cpanel/operation/get_server_type/
+     */
+    public function getFTPServerType():string;
+
+    /**
+     * This function checks whether the server uses ProFTPD.
+     * @return bool - True if the server uses ProFTPD, false otherwise.
+     */
+    public function isServerTypeProFTPD():bool;
+
+    /**
+     * This function checks whether the server uses Pure-FTPd.
+     * @return bool - True if the server uses Pure-FTPd, false otherwise.
+     */
+    public function isServerTypePureFTPd():bool;
+
+    /**
+     * This function enables or disables anonymous FTP logins.
+    * @param bool $allow - Whether to allow anonymous FTP logins.
+    * @return bool - True if the setting is updated. CpanelFTPException if an error occurs.
+     */
+    public function setAnonymousFTPAllowed(bool $allow):bool;
+
+    /**
+     * This function enables anonymous FTP logins.
+     * @return bool - True if the setting is updated. CpanelFTPException if an error occurs.
+     */
+    public function enableAnonymousFTP():bool;
+
+    /**
+     * This function disables anonymous FTP logins.
+     * @return bool - True if the setting is updated. CpanelFTPException if an error occurs.
+     */
+    public function disableAnonymousFTP():bool;
+
+    /**
+     * This function enables or disables anonymous FTP transfers.
+     * @param bool $allow - Whether to allow anonymous FTP transfers.
+     * @return bool - True if the setting is updated. CpanelFTPException if an error occurs.
+     */
+    public function setAnonymousFTPTransferAllowed(bool $allow):bool;
+
+    /**
+     * This function enables anonymous FTP transfers.
+     * @return bool - True if the setting is updated. CpanelFTPException if an error occurs.
+     */
+    public function enableAnonymousFTPTransfer():bool;
+
+    /**
+     * This function disables anonymous FTP transfers.
+     * @return bool - True if the setting is updated. CpanelFTPException if an error occurs.
+     */
+    public function disableAnonymousFTPTransfer():bool;
 }

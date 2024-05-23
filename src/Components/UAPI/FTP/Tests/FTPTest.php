@@ -103,7 +103,7 @@ class FTPTest extends TestCase
 
     public function testUpdatePassword()
     {
-        $password = "NorDakota2";
+        $password = "Nor".time()."!@#";
         $status = $this->ftp->updatePassword($this->user, $password);
         $this->assertTrue($status);
     }
