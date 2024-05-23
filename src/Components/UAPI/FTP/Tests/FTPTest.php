@@ -46,6 +46,9 @@ class FTPTest extends TestCase
         if ($this->ftp->exist($this->user)) {
             $this->ftp->delete($this->user, $destroy = true);
         }
+
+        $this->ftp->disableAnonymousFTP();
+        $this->ftp->disableAnonymousFTPTransfer();
     }
 
     private function createFTPUser()
@@ -111,6 +114,106 @@ class FTPTest extends TestCase
     public function testUpdateHomeDir()
     {
         $status = $this->ftp->updateHomeDirectory($this->user, "/home/testFTPUser2");
+        $this->assertTrue($status);
+    }
+
+    public function testIsAnonymousFTPAllowed()
+    {
+        $status = $this->ftp->isAnonymousFTPAllowed();
+        $this->assertIsBool($status);
+    }
+
+    public function testIsAnonymousFTPTransferAllowed()
+    {
+        $status = $this->ftp->isAnonymousFTPTransferAllowed();
+        $this->assertIsBool($status);
+    }
+
+    public function testGetFTPServerInformation()
+    {
+        $info = $this->ftp->getFTPServerInformation();
+        //print_r($info);
+
+        $this->assertIsArray($info);
+        $this->assertArrayHasKey('name', $info);
+        $this->assertArrayHasKey('enabled', $info);
+        $this->assertArrayHasKey('supports', $info);
+    }
+
+    public function testGetFTPPort()
+    {
+        $port = $this->ftp->getFTPPort();
+        print_r($port);
+        $this->assertIsInt($port);
+    }
+
+    public function testKillFTPSession()
+    {
+        $status =$this->ftp->killFTPSession();
+        $this->assertTrue($status);
+    }
+
+    public function testGetActiveFTPSessions()
+    {
+        $sessions = $this->ftp->getActiveFTPSessions();
+        //print_r($sessions);
+        $this->assertIsArray($sessions);
+    }
+
+    public function testGetFTPServerType()
+    {
+        $type = $this->ftp->getFTPServerType();
+        $this->assertContains($type, ['proftpd', 'pure-ftpd', 'disabled']);
+    }
+
+    public function testIsFTPServerDisabled()
+    {
+        $this->assertIsBool($this->ftp->isFTPServerDisabled());
+    }
+
+    public function testIsServerTypeProFTPD()
+    {
+        $this->assertIsBool($this->ftp->isServerTypeProFTPD());
+    }
+
+    public function testIsServerTypePureFTPd()
+    {
+        $this->assertIsBool($this->ftp->isServerTypePureFTPd());
+    }
+
+    public function testSetAnonymousFTPAllowed()
+    {
+        $status = $this->ftp->setAnonymousFTPAllowed($allow = true);
+        $this->assertIsBool($status);
+    }
+
+    public function testEnableAnonymousFTP()
+    {
+        $status = $this->ftp->enableAnonymousFTP();
+        $this->assertTrue($status);
+    }
+
+    public function testDisableAnonymousFTP()
+    {
+        $status = $this->ftp->disableAnonymousFTP();
+        $this->assertTrue($status);
+    }
+
+    public function testSetAnonymousFTPTransferAllowed()
+    {
+        $status = $this->ftp->setAnonymousFTPTransferAllowed($allow = true);
+        $this->assertTrue($status);
+    }
+
+    public function testEnableAnonymousFTPTransfer()
+    {
+        $status = $this->ftp->enableAnonymousFTPTransfer();
+        $this->assertTrue($status);
+    }
+
+    public function testDisableAnonymousFTPTransfer()
+    {
+        $status = $this->ftp->disableAnonymousFTPTransfer();
         $this->assertTrue($status);
     }
 }

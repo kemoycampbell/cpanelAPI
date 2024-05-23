@@ -287,4 +287,205 @@ class FTP implements FTPInterface
 
         return true;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function isAnonymousFTPAllowed(): bool
+    {
+        $function = 'allows_anonymous_ftp';
+        $response = $this->api->request($this->module, $function);
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return $response->getResponseAsArray()["data"]["allowed"] == 1;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isAnonymousFTPTransferAllowed(): bool
+    {
+        $function = 'allows_anonymous_ftp_incoming';
+        $response = $this->api->request($this->module, $function);
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return $response->getResponseAsArray()["data"]["allowed"] == 1;
+    }
+
+    public function getFTPServerInformation(): array
+    {
+        $function = 'get_ftp_daemon_info';
+        $response = $this->api->request($this->module, $function);
+
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return $response->getResponseAsArray()["data"];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getFTPPort(): int
+    {
+
+        $function = 'get_port';
+        $response = $this->api->request($this->module, $function);
+
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return $response->getResponseAsArray()["data"]["port"];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function killFTPSession(string $user = "all"): bool
+    {
+        $function = 'kill_session';
+        $parameters = array(
+            "user" => $user
+        );
+
+        $this->api->request($this->module, $function, $parameters);
+
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getActiveFTPSessions(): array
+    {
+        $function = 'list_sessions';
+        $response = $this->api->request($this->module, $function);
+
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+        return $response->getResponseAsArray()["data"];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getFTPServerType(): string
+    {
+        $function = 'server_name';
+        $response = $this->api->request($this->module, $function);
+
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return $response->getResponseAsArray()["data"];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isServerTypeProFTPD(): bool
+    {
+        $type = $this->getFTPServerType();
+        return str_contains($type, "proftpd");
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isServerTypePureFTPd(): bool
+    {
+        $type = $this->getFTPServerType();
+        return str_contains($type, "pure-ftpd");
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isFTPServerDisabled(): bool
+    {
+        $type = $this->getFTPServerType();
+        return str_contains($type, "disabled");
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setAnonymousFTPAllowed(bool $allow): bool
+    {
+        $function = 'set_anonymous_ftp';
+        $parameters = array(
+            "allow" => $allow ? 1:0
+        );
+
+        $this->api->request($this->module, $function, $parameters);
+
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function enableAnonymousFTP(): bool
+    {
+        return $this->setAnonymousFTPAllowed(true);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function disableAnonymousFTP(): bool
+    {
+        return $this->setAnonymousFTPAllowed(false);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setAnonymousFTPTransferAllowed(bool $allow): bool
+    {
+        $function = 'set_anonymous_ftp_incoming';
+        $parameters = array(
+            "allow" => $allow ? 1:0
+        );
+
+        $this->api->request($this->module, $function, $parameters);
+
+        if ($this->api->hasErrors()) {
+            throw new CpanelFTPException($this->api->getErrors());
+        }
+
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function enableAnonymousFTPTransfer(): bool
+    {
+        return $this->setAnonymousFTPTransferAllowed(true);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function disableAnonymousFTPTransfer(): bool
+    {
+        return $this->setAnonymousFTPTransferAllowed(false);
+    }
 }

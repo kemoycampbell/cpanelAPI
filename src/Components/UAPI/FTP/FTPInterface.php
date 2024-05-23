@@ -193,6 +193,12 @@ interface FTPInterface
     public function isServerTypePureFTPd():bool;
 
     /**
+     * This function checks whether the server uses Pure-FTPd.
+     * @return bool - True if the server uses Pure-FTPd, false otherwise.
+     */
+    public function isFTPServerDisabled():bool;
+
+    /**
      * This function enables or disables anonymous FTP logins.
     * @param bool $allow - Whether to allow anonymous FTP logins.
     * @return bool - True if the setting is updated. CpanelFTPException if an error occurs.
